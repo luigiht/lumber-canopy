@@ -6,7 +6,14 @@ All notable changes to Lumber & Canopy are recorded here. The format follows [Ke
 
 ### Added
 
+- **Seed trees:** the four broadleaf trees now and then have 1–2 seeds caught in their branches, mostly spider plant and pothos. A picked tree has seeds again after 10–16 in-game hours, and its marker dims until then.
+- **Garden field:** a rope-fenced patch in front of the cabin, where you build raised beds (3, then 6) and sow seeds there with a little soil and no pot. Each bed gives back 2–3 seeds of its kind.
 - **Email confirmation in Settings:** the Account section shows whether your email is confirmed, checks again with the server when Settings opens, and lets you resend the confirmation link (with a 60-second cooldown) or check again. Players still waiting to confirm can enter their password to check after confirming on another device; their game then moves to the account without leaving play.
+
+### Changed
+
+- The welcome-back summary shows each tool's level as a small label next to its name.
+- The potting table no longer lists the plants on display ("In and around your cabin"); the Plants panel (P) still does.
 
 ## [0.1.0] - 2026-11-27
 

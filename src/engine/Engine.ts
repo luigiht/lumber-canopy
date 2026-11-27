@@ -173,7 +173,7 @@ export class Engine {
     this.cabin = new Cabin(cabinY);
     this.outside.add(this.cabin.group);
     this.stations = new Stations(this.nav, voxelMaterial, cabinY);
-    // Benches, the compost heap and the delivery box are solid: paths go around them.
+    // Benches, the compost heap, the delivery box and the garden field are solid: paths (the player's and the otter's) go around them.
     for (const r of this.stations.footprints()) this.nav.blockRect(r);
     this.otter = this.createOtter(voxelMaterial);
     this.outside.add(this.otter.group);

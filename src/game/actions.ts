@@ -2,10 +2,11 @@ import { useGame, type BuildState, type Panel } from './store';
 import { CABIN } from '@/config/cabin';
 import { DECOR_SLOTS, TABLE_SLOTS, slotPlace, stationById } from '@/config/stations';
 import { formatCost, itemDef, type Cost, type ItemId } from './items';
-import { rollCatch, rollOtterFind } from './loot';
+import { rollCatch, rollOtterFind, rollTreeSeed } from './loot';
+import { FIELD, fieldBeds } from '@/config/field';
 import { FRIEND_FEEDS, OTTER_LEVELS, isFriend, otterLevel } from './otter';
-import { SEED_FACTOR, SPECIES, potStage, type SpeciesId } from './plants';
-import { COMPOST_MAX, COMPOST_REFILL_HOURS, ROCK_MAX, ROCK_REFILL_HOURS, type NodeState } from './save';
+import { SEED_FACTOR, SPECIES, potStage, type Bed, type SpeciesId } from './plants';
+import { COMPOST_MAX, COMPOST_REFILL_HOURS, ROCK_MAX, ROCK_REFILL_HOURS, TREE_REGROW_HOURS, type NodeState } from './save';
 import { MAX_TOOL_LEVEL, TOOLS, TOOL_STATS, levelIndex, type ToolId } from './tools';
 import { requestSave } from './session';
 
@@ -152,6 +153,9 @@ export function interact(stationId: string) {
     case 'compost':
       gatherSoil();
       break;
+    case 'tree':
+      pickSeeds(Number(stationId.split(':')[1]));
+      break;
     case 'door':
       if (get().build.phase !== 'done') toast('Finish building the cabin first.');
       else {
@@ -239,6 +243,33 @@ export function gatherSoil() {
     engine.setTool(get().selectedTool);
     requestSave(4000);
     if (get().compost.left > 0) gatherSoil();
+  });
+}
+
+/** Picks the seeds the wind has caught in a broadleaf tree; it has more again after a while. */
+export function pickSeeds(index: number) {
+  const s = get();
+  const tree = s.seedTrees[index];
+  const engine = s.engine;
+  if (!tree || !engine) return;
+  if (s.elapsed < tree.readyAt) {
+    toast(`No seeds caught in the branches right now. Check back in ${hoursText(tree.readyAt - s.elapsed)}.`);
+    return;
+  }
+  engine.setTool(null);
+  engine.work(`tree:${index}`, 1.8, () => {
+    const now = get();
+    if (now.elapsed < (now.seedTrees[index]?.readyAt ?? 0)) return;
+    const [min, max] = TREE_REGROW_HOURS;
+    const seedTrees = now.seedTrees.slice();
+    seedTrees[index] = { readyAt: now.elapsed + min + Math.random() * (max - min) };
+    const found = rollTreeSeed();
+    set({ seedTrees, stats: { ...now.stats, gathered: now.stats.gathered + found.amount } });
+    give({ [found.item]: found.amount });
+    toast(`+${found.amount} ${itemDef(found.item).name}`, 'good');
+    once('treeSeeds', 'Seeds the wind blew into the branches. The tree is left unharmed.');
+    engine.setTool(get().selectedTool);
+    requestSave(4000);
   });
 }
 
@@ -512,6 +543,76 @@ export function sellPlant(species: SpeciesId, mode: 'coins' | 'trade') {
   requestSave();
 }
 
+// ---- Garden field -----------------------------------------------------------------------------
+
+/** The next build for the garden field (the first one makes it), or null once it's fully built. */
+export const nextFieldBuild = () => FIELD.builds[get().field.level] ?? null;
+
+export const bedSeedHours = (species: SpeciesId) => SPECIES[species].hours * SEED_FACTOR;
+
+/** Builds the garden field, or adds beds to it. */
+export function buildField() {
+  const build = nextFieldBuild();
+  if (!build) return;
+  const cost = build.cost as Cost;
+  if (!spend(cost)) {
+    toast(`Not enough yet. You still need ${formatCost(missingFor(cost))}.`, 'warn');
+    return;
+  }
+  const first = get().field.level === 0;
+  set((s) => ({ field: { ...s.field, level: s.field.level + 1 } }));
+  toast(
+    first
+      ? `Garden field built with ${build.beds} beds. Plant seeds here to grow more seeds.`
+      : `The garden field now has ${build.beds} beds.`,
+    'good',
+  );
+  requestSave();
+}
+
+/** Sows a seed in an empty bed: costs the seed and one soil, no pot. */
+export function plantBed(index: number, seedId: ItemId) {
+  const s = get();
+  const [kind, species] = seedId.split(':') as [string, SpeciesId];
+  if (kind !== 'seed' || !SPECIES[species]) return;
+  if (index >= fieldBeds(s.field.level) || s.field.beds[index]) return;
+  const cost: Cost = { [seedId]: 1, soil: 1 };
+  if (!spend(cost)) {
+    toast(`Sowing needs ${formatCost(missingFor(cost))} more.`, 'warn');
+    return;
+  }
+  const bed: Bed = { species, plantedAt: s.elapsed, hours: bedSeedHours(species) };
+  set((st) => {
+    const beds = st.field.beds.slice();
+    beds[index] = bed;
+    return { field: { ...st.field, beds }, stats: { ...st.stats, planted: st.stats.planted + 1 } };
+  });
+  toast(`Sowed ${SPECIES[species].name} seeds. They’ll set seed in ${Math.round(bed.hours)} in-game hours.`, 'good');
+  requestSave();
+}
+
+/** Collects the seeds from a mature bed, leaving it empty for the next sowing. */
+export function harvestBed(index: number) {
+  const s = get();
+  const bed = s.field.beds[index];
+  if (!bed || potStage(bed, s.elapsed) !== 3) return;
+  const n = SPECIES[bed.species].fieldSeeds;
+  set((st) => {
+    const beds = st.field.beds.slice();
+    beds[index] = null;
+    return { field: { ...st.field, beds }, stats: { ...st.stats, harvested: st.stats.harvested + 1 } };
+  });
+  give({ [`seed:${bed.species}`]: n });
+  toast(`Harvested ${n} ${SPECIES[bed.species].name} seeds.`, 'good');
+  requestSave();
+}
+
+/** Beds whose seeds are ready to harvest. */
+export const readyBeds = () => {
+  const s = get();
+  return s.field.beds.filter((b) => b && potStage(b, s.elapsed) === 3).length;
+};
+
 // ---- Cabin ------------------------------------------------------------------------------------
 
 export const stageCost = (stageIndex: number): Cost => (CABIN.stages[stageIndex]?.cost ?? {}) as Cost;
@@ -558,6 +659,8 @@ export function currentGoal(): string | null {
     return s.build.phase === 'plot' ? 'You have the materials: click “Build cabin” at the plot.' : 'Keep building your cabin.';
   }
   if (s.pots.some((p) => potStage(p, s.elapsed) === 3)) return 'A plant is ready! Place it, take cuttings, or pot it up.';
+  if (readyBeds()) return 'Seeds are ready in the garden field.';
+  if (s.field.level === 0) return 'Build a garden field in front of your cabin to grow more seeds.';
   const insideSlots = DECOR_SLOTS.map((d, i) => (d.interior ? i : -1)).filter((i) => i >= 0);
   const inside = insideSlots.filter((i) => s.decor[i]).length;
   const bagPlants = Object.keys(s.inventory).some((id) => id.startsWith('plant:') && s.inventory[id] > 0);

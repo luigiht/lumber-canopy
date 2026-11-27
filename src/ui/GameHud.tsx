@@ -5,7 +5,7 @@ import { useGame } from '@/game/store';
 import { MATERIALS, MATERIAL_IDS, parsePlantItem } from '@/game/items';
 import { TOOLS, TOOL_IDS } from '@/game/tools';
 import { STATIONS } from '@/config/stations';
-import { SPECIES } from '@/game/plants';
+import { SPECIES, potStage } from '@/game/plants';
 import { isFriend } from '@/game/otter';
 import {
   TUTORIAL_STEPS,
@@ -129,12 +129,17 @@ const MARKER_ICON: Record<string, string> = {
   potting: 'sprout',
   workbench: 'hammer',
   delivery: 'box',
+  tree: 'seed',
+  field: 'sprout',
 };
 
 /** Floating buttons over everything the player can use; clicking one walks there. */
 export function WorldMarkers() {
   const engine = useGame((s) => s.engine);
   const rocks = useGame((s) => s.rocks);
+  const seedTrees = useGame((s) => s.seedTrees);
+  const elapsed = useGame((s) => s.elapsed);
+  const fieldReady = useGame((s) => s.field.beds.some((b) => b && potStage(b, s.elapsed) === 3));
   const inside = useGame((s) => s.inside);
   const floor = useGame((s) => s.floor);
   const decor = useGame((s) => s.decor);
@@ -166,9 +171,13 @@ export function WorldMarkers() {
   return (
     <div className={ui.markerLayer}>
       {shown.map((s) => {
-        const empty = s.kind === 'rocks' && rocks[Number(s.id.split(':')[1])]?.left <= 0;
+        const index = Number(s.id.split(':')[1]);
+        const empty =
+          (s.kind === 'rocks' && rocks[index]?.left <= 0) || (s.kind === 'tree' && elapsed < (seedTrees[index]?.readyAt ?? 0));
         const planted = s.kind === 'slot' && s.slot !== undefined ? decor[s.slot] : null;
-        const label = planted ? `${SPECIES[planted].name}: pick up or swap` : `${s.name}: ${s.hint}`;
+        const hint = s.kind === 'field' && fieldReady ? 'Seeds ready!' : s.hint;
+        const label = planted ? `${SPECIES[planted].name}: pick up or swap` : `${s.name}: ${hint}`;
+        const emptyText = s.kind === 'tree' ? 'no seeds right now, more later' : 'empty, refills over time';
         return (
           <button
             key={s.id}
@@ -178,14 +187,14 @@ export function WorldMarkers() {
             }}
             className={`${hud.worldButton} ${ui.marker} ${empty ? ui.dim : ''}`}
             style={{ animation: 'none' }}
-            title={empty ? `${s.name}: empty, refills over time` : label}
+            title={empty ? `${s.name}: ${emptyText}` : label}
             aria-label={empty ? `${s.name} (empty)` : label}
             onClick={() => engine?.goTo(s.id)}
           >
             <span className={ui.icon} aria-hidden="true">
               <ItemIcon icon={planted ? 'potted' : MARKER_ICON[s.kind]} />
             </span>
-            <span className={ui.markerName}>{planted ? SPECIES[planted].name : s.hint}</span>
+            <span className={ui.markerName}>{planted ? SPECIES[planted].name : hint}</span>
           </button>
         );
       })}

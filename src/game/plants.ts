@@ -13,6 +13,8 @@ export interface Species {
   trade: Partial<Record<string, number>>;
   /** Cuttings you get each time you propagate a mature plant. */
   cuttings: number;
+  /** Seeds you get when harvesting a bed of it in the garden field. */
+  fieldSeeds: number;
   blurb: string;
 }
 
@@ -24,6 +26,7 @@ export const SPECIES: Record<SpeciesId, Species> = {
     price: 8,
     trade: { metal: 2 },
     cuttings: 2,
+    fieldSeeds: 3,
     blurb: 'Trailing vines that root happily in a jar of water.',
   },
   spider: {
@@ -33,6 +36,7 @@ export const SPECIES: Record<SpeciesId, Species> = {
     price: 6,
     trade: { rope: 2 },
     cuttings: 3,
+    fieldSeeds: 3,
     blurb: 'Sends out baby plantlets you can pot straight away.',
   },
   fern: {
@@ -42,6 +46,7 @@ export const SPECIES: Record<SpeciesId, Species> = {
     price: 10,
     trade: { glass: 2, nails: 2 },
     cuttings: 2,
+    fieldSeeds: 3,
     blurb: 'Loves the misty air by the river.',
   },
   snake: {
@@ -51,6 +56,7 @@ export const SPECIES: Record<SpeciesId, Species> = {
     price: 14,
     trade: { metal: 3, copper: 1 },
     cuttings: 2,
+    fieldSeeds: 2,
     blurb: 'Tough and upright; grows from a single leaf cutting.',
   },
   monstera: {
@@ -60,6 +66,7 @@ export const SPECIES: Record<SpeciesId, Species> = {
     price: 22,
     trade: { copper: 2 },
     cuttings: 2,
+    fieldSeeds: 2,
     blurb: 'Big split leaves. The pride of any cabin.',
   },
 };
@@ -84,16 +91,26 @@ export interface Pot {
   from: 'seed' | 'cutting';
 }
 
-export function potProgress(pot: Pot, elapsed: number) {
+/** A bed in the garden field, growing seeds into more seeds. */
+export interface Bed {
+  species: SpeciesId;
+  plantedAt: number;
+  hours: number;
+}
+
+/** Anything that grows: a pot on the table or a bed in the field. */
+type Growing = Pick<Pot, 'plantedAt' | 'hours'>;
+
+export function potProgress(pot: Growing, elapsed: number) {
   return Math.max(0, Math.min(1, (elapsed - pot.plantedAt) / pot.hours));
 }
 
-export function potStage(pot: Pot, elapsed: number): GrowthStage {
+export function potStage(pot: Growing, elapsed: number): GrowthStage {
   const p = potProgress(pot, elapsed);
   return p >= 1 ? 3 : p >= 0.3 ? 2 : 1;
 }
 
 /** In-game hours left until mature. */
-export function potHoursLeft(pot: Pot, elapsed: number) {
+export function potHoursLeft(pot: Growing, elapsed: number) {
   return Math.max(0, pot.plantedAt + pot.hours - elapsed);
 }

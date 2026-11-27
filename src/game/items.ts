@@ -108,8 +108,8 @@ export function itemDef(id: string): ItemDef {
       return {
         name: `${sp.name} seeds`,
         icon: 'seed',
-        source: 'Found sealed in bottles drifting down the river.',
-        use: 'Plant at the potting table (slower than cuttings).',
+        source: 'Caught in the branches of the broadleaf trees, or found sealed in bottles drifting down the river.',
+        use: 'Plant at the potting table (slower than cuttings), or in the garden field to grow more seeds.',
       };
     case 'cutting':
       return {

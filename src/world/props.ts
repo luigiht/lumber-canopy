@@ -48,7 +48,9 @@ export class Props {
     const terrain = ground.terrain;
     const rng = makeRng(cfg.seed);
     // Structures claim their footprint first; nothing else may overlap them.
-    const keepOut = cfg.placements.filter((p) => (MODELS[p.model] as ModelDef).structure).map(footprint);
+    const keepOut: { distance(x: number, z: number, model?: ModelKey): number }[] = cfg.placements
+      .filter((p) => (MODELS[p.model] as ModelDef).structure)
+      .map(footprint);
     // The cabin site is reserved too, so nothing grows through the floor once it's built.
     const k = CABIN.keepOut;
     keepOut.push({
@@ -59,19 +61,24 @@ export class Props {
     const spots = [
       // Outdoor stations only (the bridge and cabin door are part of their structures).
       ...STATIONS.filter((s) => s.area !== 'inside' && s.kind !== 'fishing' && s.kind !== 'door').flatMap((s) => [
-        { x: s.x, z: s.z, r: 1.0 },
-        { x: s.spot[0], z: s.spot[1], r: 0.5 },
+        // Seed trees are broadleaf placements themselves: only the spot beside the trunk is kept clear.
+        ...(s.kind === 'tree' ? [] : [{ x: s.x, z: s.z, r: s.kind === 'field' ? 1.6 : 1.0 }]),
+        { x: s.spot[0], z: s.spot[1], r: 0.5, except: s.kind === 'tree' ? ('broadleaf' as ModelKey) : undefined },
       ]),
       ...DECOR_SLOTS.filter((d) => !d.interior).map((d) => ({ x: d.x, z: d.z, r: 0.45 })),
       { x: ARRIVAL.spawn.x, z: ARRIVAL.spawn.z, r: 1.2 },
     ];
-    for (const sp of spots) keepOut.push({ distance: (x: number, z: number) => Math.max(0, Math.hypot(x - sp.x, z - sp.z) - sp.r) });
+    for (const sp of spots)
+      keepOut.push({
+        distance: (x: number, z: number, model?: ModelKey) =>
+          'except' in sp && sp.except === model ? Infinity : Math.max(0, Math.hypot(x - sp.x, z - sp.z) - sp.r),
+      });
     const clear = (p: Placement) => {
       const def = MODELS[p.model] as ModelDef;
       const reach = def.clearance;
       // Anything solid, or tall enough to hide the road, stays off the road and the bridge path.
       if ((def.collide || def.castShadow) && roadDist(cfg, p.x, p.z) < reach + 0.2) return false;
-      return keepOut.every((r) => r.distance(p.x, p.z) >= reach + 0.15);
+      return keepOut.every((r) => r.distance(p.x, p.z, p.model) >= reach + 0.15);
     };
     const placed: Placement[] = cfg.placements.filter((p) => {
       if ((MODELS[p.model] as ModelDef).structure || clear(p)) return true;

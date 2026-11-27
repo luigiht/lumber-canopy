@@ -171,7 +171,7 @@ export function onArrivalDone() {
 export function buildSave(): SaveState | null {
   const s = get();
   if (!s.engine) return null;
-  const { inventory, coins, tools, selectedTool, pots, nextPotId, decor, rocks, compost, arrived, tutorial, stats, otter } = s;
+  const { inventory, coins, tools, selectedTool, pots, nextPotId, decor, rocks, compost, seedTrees, field, arrived, tutorial, stats, otter } = s;
   return {
     version: 1,
     inventory,
@@ -183,6 +183,8 @@ export function buildSave(): SaveState | null {
     decor,
     rocks,
     compost,
+    seedTrees,
+    field,
     arrived,
     tutorial,
     stats,

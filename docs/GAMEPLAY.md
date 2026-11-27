@@ -8,7 +8,7 @@ The numbers below are the current values. Where each one lives is noted so this 
 
 1. **Gather** reclaimed materials: fish debris from the bridge, gather loose stones, scoop soil from the compost.
 2. **Build** the cabin stage by stage; each stage uses materials.
-3. **Grow** plants from seeds and cuttings at the potting table.
+3. **Grow** plants from seeds and cuttings at the potting table, and grow more seeds in the garden field.
 4. **Propagate** mature plants for more cuttings, then **place** them in and around the cabin, or **sell/trade** them.
 5. **Upgrade** tools with coins and materials, which makes gathering faster and finds rarer.
 6. **Befriend the otter** with seeds; it brings back finds from the river.
@@ -59,7 +59,15 @@ Five piles along the riverbanks and garden edge. Each holds 6 stones and refills
 
 ### Compost
 
-Soil for pots: 4 scoops, 2 s each, refilling 6 in-game hours after first use.
+Soil for pots and garden beds: 4 scoops, 2 s each, refilling 6 in-game hours after first use.
+
+### Seed trees
+
+The four broadleaf trees (every `broadleaf` placement in `src/config/world.ts`) now and then have seeds the wind blew into their branches. Three stand on the cabin side and one east of the river, near the drop-off.
+
+- **Picking** takes 1.8 s with empty hands and gives 1 seed, or 2 (35% chance) (`rollTreeSeed` in `src/game/loot.ts`).
+- **Species odds:** spider plant 4, pothos 4, Boston fern 2, snake plant 1, monstera 0.5.
+- **Regrowth:** a picked tree has seeds again after 10–16 in-game hours (`TREE_REGROW_HOURS` in `src/game/save.ts`). Its marker is dimmed until then.
 
 ## The cabin
 
@@ -108,6 +116,28 @@ Five species (`src/game/plants.ts`). Seeds take 1.5× longer than cuttings.
   - **propagated**, which gives cuttings and sends the plant back to 45% grown;
   - **put in the bag**, which frees the table slot.
 - **Table capacity:** 3 pots, plus 1 for every 4 plants on display, up to 6.
+
+- **The potting table** doesn't show the plants on display; the Plants panel (P) lists them, with Pick up.
+
+### Garden field
+
+A rope-fenced patch of bare ground in front of the cabin, with raised beds where seeds grow into more seeds. The player and the otter walk around it (`src/config/field.ts`). The field doesn't need the cabin to be built.
+
+| Build | Cost | Beds |
+| --- | --- | --- |
+| Build the field | 4 stones, 2 driftwood | 3 |
+| Add beds | 6 stones, 3 scrap wood, 1 rope | 6 |
+
+- **Sowing** uses 1 seed and 1 soil, no pot.
+- **Growing** takes as long as a seed at the table (1.5× the cutting time).
+- **Harvest** gives seeds of the same species and empties the bed:
+
+| Species | Seeds per harvest |
+| --- | --- |
+| Spider plant, pothos, Boston fern | 3 |
+| Snake plant, monstera | 2 |
+
+The field marker reads "Seeds ready!" when a bed can be harvested.
 
 ### Display spots (23)
 

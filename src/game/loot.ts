@@ -63,6 +63,20 @@ const OTTER_RARE: [ItemId, number][] = [
   ...SPECIES_IDS.map((s): [ItemId, number] => [`cutting:${s}`, 1]),
 ];
 
+/** Seeds the wind leaves in the broadleaf trees: mostly the common, easy-growing kinds. */
+const TREE_SEEDS: [ItemId, number][] = [
+  ['seed:spider', 4],
+  ['seed:pothos', 4],
+  ['seed:fern', 2],
+  ['seed:snake', 1],
+  ['seed:monstera', 0.5],
+];
+
+/** Seeds picked from a tree: 1, sometimes 2. */
+export function rollTreeSeed(rnd: () => number = Math.random): { item: ItemId; amount: number } {
+  return { item: weighted(TREE_SEEDS, rnd()), amount: rnd() < 0.35 ? 2 : 1 };
+}
+
 export function rollOtterFind(level: { rare: number; extra: number }, rnd: () => number = Math.random): Catch {
   return rollLoot({ rare: level.rare, extra: level.extra, rareTable: OTTER_RARE }, rnd);
 }

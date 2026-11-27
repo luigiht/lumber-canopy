@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WORLD, pathDist, roadOffset, type WorldConfig } from '@/config/world';
+import { FIELD } from '@/config/field';
 import { PALETTE as P } from '@/voxel/palette';
 import { VoxelGrid } from '@/voxel/VoxelModel';
 import { greedyMesh } from '@/voxel/greedyMesh';
@@ -247,11 +248,29 @@ export class Terrain {
           if (sd < stream.halfWidth + bankW) this.mat[c] = Mat.Bank;
           else if (onRoad) this.mat[c] = Mat.Road;
           else if (pd + (valueNoise2(x * 2.1, z * 2.1, seed + 9) - 0.5) * 0.3 < 0) this.mat[c] = Mat.Dirt;
+          // The garden field's patch is bare ground, like around the cabin.
+          else if (this.isFieldDirt(i, k)) this.mat[c] = Mat.Dirt;
           else if (this.isDirt(i, k, e)) this.mat[c] = Mat.Dirt;
           else this.mat[c] = Mat.Grass;
         }
       }
     }
+  }
+
+  /**
+   * The garden field's bare patch: solid inside the fence, then loose pixels of soil scattered past
+   * it that thin out over most of a tile, so its edge isn't a straight line.
+   */
+  private isFieldDirt(i: number, k: number) {
+    const x = this.colToWorld(i);
+    const z = this.colToWorld(k);
+    const out = Math.max(Math.abs(x - FIELD.x) - FIELD.halfX, Math.abs(z - FIELD.z) - FIELD.halfZ);
+    if (out < 0) return true;
+    const reach = 0.85;
+    // A wobbly band of bare ground first, then single pixels that get rarer with distance.
+    const edge = out + (valueNoise2(x * 3.1, z * 3.1, this.cfg.seed + 17) - 0.5) * 0.45;
+    if (edge < 0.18) return true;
+    return edge < reach && hash3(i, 23, k) < 0.8 * (1 - edge / reach) ** 1.3;
   }
 
   private isDirt(i: number, k: number, e: number) {

@@ -3,7 +3,7 @@ import type { Engine } from '@/engine/Engine';
 import type { Account } from '@/services/account';
 import type { SpeciesId, Pot } from './plants';
 import type { ToolId } from './tools';
-import { newGameState, type NodeState, type Stats, type SaveState } from './save';
+import { newGameState, type FieldSave, type NodeState, type Stats, type SaveState } from './save';
 
 export interface BuildState {
   phase: 'plot' | 'building' | 'done';
@@ -33,7 +33,17 @@ export type Screen =
   | 'welcome'
   | 'playing';
 
-export type Panel = 'inventory' | 'plants' | 'potting' | 'workbench' | 'delivery' | 'place' | 'otter' | 'bed' | null;
+export type Panel =
+  | 'inventory'
+  | 'plants'
+  | 'potting'
+  | 'workbench'
+  | 'delivery'
+  | 'place'
+  | 'otter'
+  | 'bed'
+  | 'field'
+  | null;
 
 export interface Toast {
   id: number;
@@ -62,6 +72,8 @@ export interface Progress {
   decor: (SpeciesId | null)[];
   rocks: NodeState[];
   compost: NodeState;
+  seedTrees: { readyAt: number }[];
+  field: FieldSave;
   arrived: boolean;
   tutorial: { done: boolean; step: number };
   stats: Stats;
@@ -119,8 +131,9 @@ export const SPEEDS = [
 ] as const;
 
 export function progressOf(save: SaveState): Progress {
-  const { inventory, coins, tools, selectedTool, pots, nextPotId, decor, rocks, compost, arrived, tutorial, stats, otter } = save;
-  return { inventory, coins, tools, selectedTool, pots, nextPotId, decor, rocks, compost, arrived, tutorial, stats, otter };
+  const { inventory, coins, tools, selectedTool, pots, nextPotId, decor, rocks, compost, seedTrees, field, arrived, tutorial, stats, otter } =
+    save;
+  return { inventory, coins, tools, selectedTool, pots, nextPotId, decor, rocks, compost, seedTrees, field, arrived, tutorial, stats, otter };
 }
 
 export const useGame = create<GameState>(() => ({

@@ -9,6 +9,7 @@ import { initSession, onArrivalDone } from './session';
 import { loadDisplay } from './display';
 import { ROCK_MAX } from './save';
 import { potStage } from './plants';
+import { fieldBeds } from '@/config/field';
 
 export default function Game() {
   const mount = useRef<HTMLDivElement>(null);
@@ -49,10 +50,14 @@ export default function Game() {
       engine.stations.setDecor(s.decor, s.build.phase === 'done');
       engine.interior.setDecor(s.decor);
       engine.stations.setTablePots(s.pots.map((p) => ({ species: p.species, stage: potStage(p, s.elapsed) })));
+      engine.stations.setField(
+        fieldBeds(s.field.level),
+        s.field.beds.map((b) => (b ? { species: b.species, stage: potStage(b, s.elapsed) } : null)),
+      );
     };
     syncWorld();
     const unsubscribe = useGame.subscribe((s, prev) => {
-      if (s.rocks !== prev.rocks || s.decor !== prev.decor || s.pots !== prev.pots || s.elapsed !== prev.elapsed || s.build.phase !== prev.build.phase)
+      if (s.rocks !== prev.rocks || s.decor !== prev.decor || s.pots !== prev.pots || s.field !== prev.field || s.elapsed !== prev.elapsed || s.build.phase !== prev.build.phase)
         syncWorld();
     });
 

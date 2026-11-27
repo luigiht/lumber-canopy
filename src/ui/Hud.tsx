@@ -15,6 +15,7 @@ import { DeliveryPanel } from './panels/DeliveryPanel';
 import { PlacePanel } from './panels/PlacePanel';
 import { OtterPanel } from './panels/OtterPanel';
 import { BedPanel, SleepOverlay } from './panels/BedPanel';
+import { FieldPanel } from './panels/FieldPanel';
 import { Onboarding } from './onboarding/Onboarding';
 import Image from 'next/image';
 import { ItemIcon } from './ItemIcon';
@@ -70,6 +71,8 @@ function Panels() {
       return <OtterPanel />;
     case 'bed':
       return <BedPanel />;
+    case 'field':
+      return <FieldPanel />;
     default:
       return null;
   }

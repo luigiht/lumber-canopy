@@ -3,8 +3,12 @@ import { meshModel } from '@/voxel/greedyMesh';
 import { makeRng } from '@/voxel/rng';
 import { VoxelModel } from '@/voxel/VoxelModel';
 import {
+  GROUND_PLANT_SINK,
   compostHeap,
   deliveryBox,
+  fieldBed,
+  fieldFence,
+  groundPlant,
   pottedPlant,
   pottingTable,
   rockPile,
@@ -13,6 +17,7 @@ import {
   workbench,
 } from '@/voxel/models/stations';
 import { ARRIVAL, DECOR_SLOTS, STATIONS, TABLE_SLOTS, type StationDef } from '@/config/stations';
+import { FIELD, FIELD_BEDS } from '@/config/field';
 import type { GrowthStage, SpeciesId } from '@/game/plants';
 import type { NavGrid } from './nav';
 
@@ -28,7 +33,12 @@ const MARKER_LIFT: Partial<Record<StationDef['kind'], number>> = {
   workbench: 2.1,
   delivery: 2.0,
   door: 2.6,
+  tree: 1.7,
+  field: 0.7,
 };
+
+/** Plants in the field are a little smaller than potted ones, to fit their beds. */
+const BED_PLANT_SCALE = 0.75;
 
 /**
  * Everything the player uses in the world, plus the plants on display: stone piles (full or
@@ -47,6 +57,9 @@ export class Stations {
   private readonly rocksEmpty: THREE.Mesh[] = [];
   private readonly decor: THREE.Mesh[] = [];
   private readonly tablePots: THREE.Mesh[] = [];
+  private readonly beds: THREE.Mesh[] = [];
+  private readonly bedPlants: THREE.Mesh[] = [];
+  private fieldKey = '';
   private readonly positions = new Map<string, THREE.Vector3>();
   private decorKey = '';
   private tableKey = '';
@@ -61,8 +74,13 @@ export class Stations {
       if (def.area === 'inside') continue; // see Interior
       const y = def.kind === 'door' ? cabinGroundY + PORCH_DECK : nav.heightAt(def.x, def.z);
       this.positions.set(def.id, new THREE.Vector3(def.x, y, def.z));
-      // The bridge and the cabin door are already in the world.
-      if (def.kind === 'fishing' || def.kind === 'door') continue;
+      // The bridge, the cabin door and the seed trees are already in the world.
+      if (def.kind === 'fishing' || def.kind === 'door' || def.kind === 'tree') continue;
+      if (def.kind === 'field') {
+        // The fence is always up; the beds inside appear as the field is built.
+        this.mesh('fieldFence', fieldFence, def, y);
+        continue;
+      }
       if (def.kind === 'rocks') {
         const i = rockIndex++;
         const full = this.mesh(`rocks:${i}`, () => rockPile(makeRng(400 + i)), def, y);
@@ -109,6 +127,25 @@ export class Stations {
       this.group.add(m);
     }
 
+    const fieldY = nav.heightAt(FIELD.x, FIELD.z);
+    for (const [ox, oz] of FIELD_BEDS) {
+      const bed = new THREE.Mesh(this.geo('fieldBed', fieldBed), material);
+      bed.position.set(FIELD.x + ox, fieldY, FIELD.z + oz);
+      bed.castShadow = true;
+      bed.receiveShadow = true;
+      bed.visible = false;
+      bed.userData.stationId = 'field';
+      this.beds.push(bed);
+      this.pickables.push(bed);
+      const plant = new THREE.Mesh(undefined, material);
+      plant.position.set(FIELD.x + ox, fieldY - (GROUND_PLANT_SINK / 16) * BED_PLANT_SCALE, FIELD.z + oz);
+      plant.scale.setScalar(BED_PLANT_SCALE);
+      plant.castShadow = true;
+      plant.visible = false;
+      this.bedPlants.push(plant);
+      this.group.add(bed, plant);
+    }
+
     this.taxi = new THREE.Mesh(this.geo('taxi', taxi), material);
     this.taxi.castShadow = true;
     this.taxi.position.set(ARRIVAL.taxiStop.x, nav.heightAt(ARRIVAL.taxiStop.x, 0), ARRIVAL.taxiFrom);
@@ -153,10 +190,11 @@ export class Stations {
 
   /**
    * Ground rectangles of the furniture-like stations (potting table, workbench, compost heap,
-   * delivery box), so the player walks around them instead of over them.
+   * delivery box) and the garden field, so the player and the otter walk around them instead of
+   * over them. The field's fence encloses its beds, built or not.
    */
   footprints() {
-    const solid = new Set(['potting', 'workbench', 'compost', 'delivery']);
+    const solid = new Set(['potting', 'workbench', 'compost', 'delivery', 'field']);
     const box = new THREE.Box3();
     return this.pickables
       .filter((m) => solid.has(STATIONS.find((s) => s.id === m.userData.stationId)?.kind ?? ''))
@@ -198,6 +236,21 @@ export class Stations {
       const show = !!sp && !DECOR_SLOTS[i].interior && (!DECOR_SLOTS[i].porch || cabinDone);
       m.visible = show;
       if (show) m.geometry = this.geo(`plant:${sp}:3`, () => pottedPlant(sp!, 3));
+    });
+  }
+
+  /** The garden field: an empty fenced patch until it's built, then its open beds and what grows in them. */
+  setField(openBeds: number, beds: ({ species: SpeciesId; stage: GrowthStage } | null)[]) {
+    const key = `${openBeds}|${beds.map((b) => (b ? `${b.species}${b.stage}` : '-')).join(',')}`;
+    if (key === this.fieldKey) return;
+    this.fieldKey = key;
+    this.beds.forEach((bed, i) => {
+      const open = i < openBeds;
+      bed.visible = open;
+      const b = open ? beds[i] : null;
+      const plant = this.bedPlants[i];
+      plant.visible = !!b;
+      if (b) plant.geometry = this.geo(`ground:${b.species}:${b.stage}`, () => groundPlant(b.species, b.stage));
     });
   }
 

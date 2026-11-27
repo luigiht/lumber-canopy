@@ -1,4 +1,5 @@
-import { roadCenterX } from './world';
+import { WORLD, roadCenterX } from './world';
+import { FIELD } from './field';
 import { INTERIOR_SLOTS, INTERIOR_SPOTS, ROOM_NAMES, type Floor, type InteriorSlot } from './interior';
 
 /**
@@ -23,7 +24,11 @@ export type StationKind =
   /** Inside: a spot for a plant. */
   | 'slot'
   /** Inside: the bed, to sleep until morning. */
-  | 'bed';
+  | 'bed'
+  /** A broadleaf tree that now and then has seeds caught in its branches. */
+  | 'tree'
+  /** The garden field in front of the cabin. */
+  | 'field';
 
 export interface StationDef {
   id: string;
@@ -53,6 +58,21 @@ const ROCK_SPOTS: { x: number; z: number; spot: [number, number] }[] = [
   { x: -7.0, z: 0.8, spot: [-6.3, 1.5] },
 ];
 
+/**
+ * Broadleaf trees the player can pick seeds from: every broadleaf placed in the world. Index = seed
+ * tree index in saves. The player stands a step from the trunk, on the side facing the clearing.
+ */
+const SEED_TREES = WORLD.placements
+  .filter((p) => p.model === 'broadleaf')
+  .map((p) => {
+    const dx = WORLD.clearing.x - p.x;
+    const dz = WORLD.clearing.z - p.z;
+    const d = Math.hypot(dx, dz) || 1;
+    return { x: p.x, z: p.z, spot: [p.x + (dx / d) * 0.8, p.z + (dz / d) * 0.8] as [number, number] };
+  });
+
+export const SEED_TREE_COUNT = SEED_TREES.length;
+
 export const STATIONS: StationDef[] = [
   {
     id: 'fishing',
@@ -76,6 +96,28 @@ export const STATIONS: StationDef[] = [
       face: [r.x, r.z],
     }),
   ),
+  ...SEED_TREES.map(
+    (t, i): StationDef => ({
+      id: `tree:${i}`,
+      kind: 'tree',
+      name: 'Broadleaf tree',
+      hint: 'Pick seeds caught in the branches',
+      x: t.x,
+      z: t.z,
+      spot: t.spot,
+      face: [t.x, t.z],
+    }),
+  ),
+  {
+    id: 'field',
+    kind: 'field',
+    name: 'Garden field',
+    hint: 'Grow seeds into more seeds',
+    x: FIELD.x,
+    z: FIELD.z,
+    spot: FIELD.spot,
+    face: [FIELD.x, FIELD.z],
+  },
   {
     id: 'compost',
     kind: 'compost',

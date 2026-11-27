@@ -2,6 +2,7 @@ import { PALETTE as P } from '../palette';
 import { VoxelModel, shades } from '../VoxelModel';
 import { irange, makeRng, type Rng } from '../rng';
 import type { SpeciesId } from '@/game/plants';
+import { FIELD } from '@/config/field';
 
 /* Voxel models for things the player uses: stone piles, the compost heap, the potting table,
  * the workbench, the delivery box, the taxi, potted houseplants and hand tools. 1 voxel = 1/16 tile. */
@@ -159,7 +160,10 @@ function pot(m: VoxelModel) {
 }
 
 const C = PLANT_W / 2 - 0.5;
+/** Foliage starts here: just above the pot's soil. */
 const TOP = 5;
+/** Height of the soil surface inside a garden bed, in voxels. */
+const BED_SOIL = 3;
 
 /** A leaf blade that arches out from the centre along (dx,dz). */
 function arch(m: VoxelModel, dx: number, dz: number, len: number, lift: number, col: number, tip = col) {
@@ -170,9 +174,13 @@ function arch(m: VoxelModel, dx: number, dz: number, len: number, lift: number, 
   }
 }
 
-function plantModel(species: SpeciesId, stage: 1 | 2 | 3): VoxelModel {
+/**
+ * A houseplant at a growth stage. Potted, it sits in a terracotta pot; otherwise it grows straight
+ * from the soil, with the soil line at y = TOP (see GROUND_PLANT_SINK).
+ */
+function plantModel(species: SpeciesId, stage: 1 | 2 | 3, potted = true): VoxelModel {
   const m = new VoxelModel(PLANT_W, PLANT_H, PLANT_W, { x: PLANT_W / 2, y: 0, z: PLANT_W / 2 });
-  pot(m);
+  if (potted) pot(m);
   const rng = makeRng(species.length * 97 + stage);
   const s = [0.45, 0.72, 1][stage - 1];
   const dirs = (n: number, off = 0) =>
@@ -244,6 +252,67 @@ export function pottedPlant(species: SpeciesId, stage: 1 | 2 | 3): VoxelModel {
     m = plantModel(species, stage);
     plantCache.set(key, m);
   }
+  return m;
+}
+
+/** A plant growing in a garden bed (cached like potted ones). */
+export function groundPlant(species: SpeciesId, stage: 1 | 2 | 3): VoxelModel {
+  const key = `ground:${species}:${stage}`;
+  let m = plantCache.get(key);
+  if (!m) {
+    m = plantModel(species, stage, false);
+    plantCache.set(key, m);
+  }
+  return m;
+}
+
+/** How far to lower a ground plant (voxels) so its soil line meets a bed's soil. */
+export const GROUND_PLANT_SINK = TOP - BED_SOIL;
+
+// ---- Garden field --------------------------------------------------------------------------
+
+const FIELD_W = Math.round(FIELD.halfX * 32);
+const FIELD_D = Math.round(FIELD.halfZ * 32);
+
+/**
+ * A low rope fence around the garden field: wooden posts at the corners and halfway along each
+ * side, with rope strung between them. Only the fence: the ground inside is the terrain's own dirt.
+ */
+export function fieldFence(): VoxelModel {
+  const m = new VoxelModel(FIELD_W, 8, FIELD_D);
+  const xs = [0, Math.floor(FIELD_W / 2), FIELD_W - 1];
+  const zs = [0, Math.floor(FIELD_D / 2), FIELD_D - 1];
+  for (const x of xs)
+    for (const z of zs) if (x !== xs[1] || z !== zs[1]) if (x === 0 || x === FIELD_W - 1 || z === 0 || z === FIELD_D - 1) m.box(x, 0, z, x, 7, z, P.walnut);
+  // Rope between the posts, sagging a voxel midway along each span.
+  const rope = (t: number, span: number) => (Math.abs(t - span / 2) < span / 4 ? 5 : 6);
+  for (let x = 1; x < FIELD_W - 1; x++) {
+    if (xs.includes(x)) continue;
+    const y = rope(x % (FIELD_W / 2), FIELD_W / 2);
+    m.set(x, y, 0, P.honeyLight);
+    m.set(x, y, FIELD_D - 1, P.honeyLight);
+  }
+  for (let z = 1; z < FIELD_D - 1; z++) {
+    if (zs.includes(z)) continue;
+    const y = rope(z % (FIELD_D / 2), FIELD_D / 2);
+    m.set(0, y, z, P.honeyLight);
+    m.set(FIELD_W - 1, y, z, P.honeyLight);
+  }
+  return m;
+}
+
+/** A raised bed edged with reclaimed boards, filled with dark soil. */
+export function fieldBed(): VoxelModel {
+  const n = 9;
+  const m = new VoxelModel(n, BED_SOIL + 1, n);
+  for (let y = 0; y <= BED_SOIL - 1; y++) {
+    const col = y === BED_SOIL - 1 ? P.honey : P.walnut;
+    m.box(0, y, 0, n - 1, y, 0, col);
+    m.box(0, y, n - 1, n - 1, y, n - 1, col);
+    m.box(0, y, 0, 0, y, n - 1, col);
+    m.box(n - 1, y, 0, n - 1, y, n - 1, col);
+  }
+  m.box(1, 0, 1, n - 2, BED_SOIL - 1, n - 2, P.potSoil);
   return m;
 }
 

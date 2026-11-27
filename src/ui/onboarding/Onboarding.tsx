@@ -421,7 +421,16 @@ function WelcomeScreen() {
         <dt>Propagated</dt>
         <dd>{save.stats.propagated} times</dd>
         <dt>Tools</dt>
-        <dd>{TOOL_IDS.map((id) => `${TOOLS[id].name} L${save.tools[id]}`).join(' · ')}</dd>
+        <dd className={styles.tools}>
+          {TOOL_IDS.map((id) => (
+            <span key={id} className={styles.tool}>
+              {TOOLS[id].name}
+              <span className={styles.levelChip} aria-label={`level ${save.tools[id]}`}>
+                Lv {save.tools[id]}
+              </span>
+            </span>
+          ))}
+        </dd>
         <dt>Coins</dt>
         <dd>{save.coins}</dd>
       </dl>

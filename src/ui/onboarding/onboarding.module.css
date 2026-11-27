@@ -135,3 +135,30 @@
 .summary dd {
   margin: 0;
 }
+
+/* Tools on the welcome-back summary: each name with a small level label beside it. */
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.levelChip {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: calc(12px * var(--text-scale, 1));
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  color: var(--wood-darker);
+  text-shadow: none;
+  background: var(--amber);
+  border: 1px solid var(--wood-darker);
+  border-radius: 3px;
+}

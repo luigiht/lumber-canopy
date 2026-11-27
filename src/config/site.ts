@@ -44,6 +44,7 @@ export const SITE = {
     'Fish floating debris (never fish) from the bridge in a timing minigame',
     'Grow pothos, spider plants, Boston ferns, snake plants and monsteras from seeds and cuttings',
     'Propagate mature plants for more cuttings, and place them in and around your cabin',
+    'Pick seeds caught in the broadleaf trees, and grow more seeds in a garden field you build',
     'Explore a cutaway two-floor cabin interior: living room, kitchen and bedroom loft',
     'Sell or trade plants to upgrade your hammer, fishing rod and pickaxe',
     'Befriend a river otter that follows you and dives for rare finds',

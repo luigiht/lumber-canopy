@@ -135,26 +135,29 @@ export function PlantsPanel({ atTable }: { atTable: boolean }) {
         )}
       </Section>
 
-      <Section title={`In and around your cabin · ${placed} of ${DECOR_SLOTS.length}`}>
-        <p className={ui.note}>Every 4 plants on display makes room for one more pot on the table.</p>
-        {placed > 0 && (
-          <ul className={ui.list}>
-            {decor.map((sp, i) =>
-              sp ? (
-                <li key={i} className={ui.spread}>
-                  <span>
-                    <ItemIcon icon="potted" /> {SPECIES[sp as SpeciesId].name}
-                    <span className={ui.muted}> · {slotPlace(i)}</span>
-                  </span>
-                  <button className={ui.text} onClick={() => pickUpPlant(i)}>
-                    Pick up
-                  </button>
-                </li>
-              ) : null,
-            )}
-          </ul>
-        )}
-      </Section>
+      {/* Plants on display are managed from the Plants panel (P), not at the potting table. */}
+      {!atTable && (
+        <Section title={`In and around your cabin · ${placed} of ${DECOR_SLOTS.length}`}>
+          <p className={ui.note}>Every 4 plants on display makes room for one more pot on the table.</p>
+          {placed > 0 && (
+            <ul className={ui.list}>
+              {decor.map((sp, i) =>
+                sp ? (
+                  <li key={i} className={ui.spread}>
+                    <span>
+                      <ItemIcon icon="potted" /> {SPECIES[sp as SpeciesId].name}
+                      <span className={ui.muted}> · {slotPlace(i)}</span>
+                    </span>
+                    <button className={ui.text} onClick={() => pickUpPlant(i)}>
+                      Pick up
+                    </button>
+                  </li>
+                ) : null,
+              )}
+            </ul>
+          )}
+        </Section>
+      )}
     </Dialog>
   );
 }
