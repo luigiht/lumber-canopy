@@ -47,11 +47,12 @@ async function hashPassword(password: string, saltHex: string) {
   return toHex(bits);
 }
 
-const publicAccount = (a: StoredAccount): Account => ({ id: a.id, email: a.email, name: a.name });
+const publicAccount = (a: StoredAccount): Account => ({ id: a.id, email: a.email, name: a.name, emailConfirmed: true });
 
 export class LocalAccountService implements AccountService {
   readonly mode = 'local' as const;
   readonly canResetPassword = false;
+  readonly confirmsEmail = false;
 
   private accounts() {
     return read<Record<string, StoredAccount>>(ACCOUNTS, {});
@@ -101,6 +102,14 @@ export class LocalAccountService implements AccountService {
       'not_supported',
       'Password reset needs online accounts, which aren’t set up yet. In offline mode, start a new game instead.',
     );
+  }
+
+  async resendConfirmation() {
+    throw new AccountError('not_supported', 'Offline accounts don’t use email, so there’s nothing to confirm.');
+  }
+
+  async refresh() {
+    return this.current();
   }
 
   async deleteAccount() {

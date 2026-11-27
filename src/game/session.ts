@@ -70,8 +70,11 @@ export async function signUp(name: string, email: string, password: string) {
 }
 
 export async function signIn(email: string, password: string) {
+  await signInWith(await accounts().signIn(email, password));
+}
+
+async function signInWith(account: Account) {
   const svc = accounts();
-  const account = await svc.signIn(email, password);
   // First sign-in after confirming: bring over what they played while waiting.
   const pending = readJSON<{ email: string; state: SaveState }>(PENDING);
   if (pending && pending.email === account.email.toLowerCase()) {
@@ -84,6 +87,57 @@ export async function signIn(email: string, password: string) {
 
 export async function requestPasswordReset(email: string) {
   await accounts().requestPasswordReset(email);
+}
+
+// ---- Email confirmation -----------------------------------------------------------------------
+
+/** Sends the confirmation link again to the signed-in or waiting-to-confirm email. */
+export async function resendConfirmation() {
+  const email = get().account?.email ?? get().pendingEmail;
+  if (!email) throw new AccountError('unknown', 'There’s no email to confirm.');
+  await accounts().resendConfirmation(email);
+}
+
+/**
+ * Asks the provider whether the email is confirmed now. A signed-in account is re-read. A player
+ * still waiting to confirm has no session, so we look for one the confirmation link may have
+ * started in this browser, then sign in with their password (which only works once confirmed).
+ */
+export async function checkEmailConfirmed(password?: string): Promise<boolean> {
+  const svc = accounts();
+  const s = get();
+  if (s.account) {
+    const account = await svc.refresh();
+    if (!account) return false;
+    set({ account });
+    return account.emailConfirmed;
+  }
+  if (!s.pendingEmail) return false;
+  let account = await svc.current();
+  if (!account && password) {
+    try {
+      account = await svc.signIn(s.pendingEmail, password);
+    } catch (e) {
+      if (e instanceof AccountError && e.code === 'not_confirmed') return false;
+      throw e;
+    }
+  }
+  if (!account) return false;
+  await adoptAccount(account);
+  return true;
+}
+
+/** The waiting player just confirmed: move what they played into the account. */
+async function adoptAccount(account: Account) {
+  if (get().screen !== 'playing') {
+    await signInWith(account);
+    return;
+  }
+  // Mid-game: keep playing the current game and save it to the new account.
+  writeJSON(PENDING, null);
+  set({ account, playerName: account.name, pendingEmail: null });
+  await saveNow();
+  toast('Email confirmed. Your game is now saved to your account.', 'good');
 }
 
 /** Starts play: a fresh game (taxi intro) or the loaded save. */

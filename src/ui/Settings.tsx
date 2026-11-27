@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { SPEEDS, useGame } from '@/game/store';
 import { setDisplay } from '@/game/display';
-import { deleteAccount, errorText, signOut } from '@/game/session';
+import { checkEmailConfirmed, deleteAccount, errorText, resendConfirmation, signOut } from '@/game/session';
 import { accounts } from '@/services/account';
 import styles from './hud.module.css';
 import ui from './ui.module.css';
@@ -127,6 +127,115 @@ function DisplaySettings() {
   );
 }
 
+const RESEND_COOLDOWN = 60;
+
+/** Shows whether the email is confirmed, with ways to resend the link and check again. */
+function EmailStatus() {
+  const account = useGame((s) => s.account);
+  const pendingEmail = useGame((s) => s.pendingEmail);
+  const [busy, setBusy] = useState<'resend' | 'check' | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: 'good' | 'warn' | 'error' } | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  // Check quietly when settings open, so the status shown is fresh.
+  const unconfirmed = accounts().confirmsEmail && (!!pendingEmail || (!!account && !account.emailConfirmed));
+  useEffect(() => {
+    if (unconfirmed) checkEmailConfirmed().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!accounts().confirmsEmail) return null;
+  const email = account?.email ?? pendingEmail;
+  if (!email) return null;
+  const confirmed = !!account?.emailConfirmed;
+  // Waiting players have no session, so checking needs their password to try signing in.
+  const needsPassword = !account;
+
+  const resend = async () => {
+    setBusy('resend');
+    setMessage(null);
+    try {
+      await resendConfirmation();
+      setCooldown(RESEND_COOLDOWN);
+      setMessage({ text: `We sent a new confirmation link to ${email}. Check your spam folder too.`, tone: 'good' });
+    } catch (e) {
+      setMessage({ text: errorText(e), tone: 'error' });
+    }
+    setBusy(null);
+  };
+
+  const check = async (e?: FormEvent) => {
+    e?.preventDefault();
+    setBusy('check');
+    setMessage(null);
+    try {
+      const ok = await checkEmailConfirmed(needsPassword ? password : undefined);
+      if (ok) setPassword('');
+      setMessage(
+        ok
+          ? { text: 'Your email is confirmed.', tone: 'good' }
+          : {
+              text:
+                needsPassword && !password
+                  ? 'Not confirmed in this browser yet. If you used the link elsewhere, enter your password to check.'
+                  : 'Not confirmed yet. Open the link in the email we sent, then check again.',
+              tone: 'warn',
+            },
+      );
+    } catch (err) {
+      setMessage({ text: errorText(err), tone: 'error' });
+    }
+    setBusy(null);
+  };
+
+  return (
+    <>
+      <p className={`${ui.note} ${confirmed ? ui.good : ui.warn}`}>
+        {confirmed ? 'Email confirmed' : 'Email not confirmed yet'}
+      </p>
+      {!confirmed && (
+        <>
+          {needsPassword && (
+            <form className={ui.field} onSubmit={(e) => void check(e)}>
+              <label className={ui.note} htmlFor="confirm-password">
+                Password (to check after confirming on another device)
+              </label>
+              <input
+                id="confirm-password"
+                className={ui.input}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </form>
+          )}
+          <div className={ui.row}>
+            <button className={ui.text} onClick={() => void check()} disabled={!!busy}>
+              {busy === 'check' ? 'Checking…' : 'Check again'}
+            </button>
+            <button className={ui.text} onClick={() => void resend()} disabled={!!busy || cooldown > 0}>
+              {busy === 'resend' ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend email'}
+            </button>
+          </div>
+        </>
+      )}
+      {message && (
+        <p className={message.tone === 'error' ? ui.error : `${ui.note} ${ui[message.tone]}`} role="status">
+          {message.text}
+        </p>
+      )}
+    </>
+  );
+}
+
 function AccountSettings() {
   const account = useGame((s) => s.account);
   const pendingEmail = useGame((s) => s.pendingEmail);
@@ -161,6 +270,7 @@ function AccountSettings() {
           Waiting for you to confirm {pendingEmail}. Your game is saved in this browser until you sign in.
         </p>
       )}
+      <EmailStatus />
       {local && <p className={ui.note}>Offline mode: your account and saves are kept in this browser.</p>}
       {saving === 'error' && <p className={`${ui.note} ${ui.warn}`}>Last save failed. We’ll try again shortly.</p>}
       <div className={ui.row}>

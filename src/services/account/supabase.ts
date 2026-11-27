@@ -10,6 +10,7 @@ import { AccountError, cleanName, type Account, type AccountService, type SignUp
 export class SupabaseAccountService implements AccountService {
   readonly mode = 'supabase' as const;
   readonly canResetPassword = true;
+  readonly confirmsEmail = true;
   readonly client: SupabaseClient;
 
   constructor(url: string, anonKey: string) {
@@ -29,7 +30,7 @@ export class SupabaseAccountService implements AccountService {
       name = cleanName(String(user.user_metadata?.name ?? 'Friend')).slice(0, 24) || 'Friend';
       await this.client.from('profiles').upsert({ user_id: user.id, name });
     }
-    return { id: user.id, email: user.email ?? '', name };
+    return { id: user.id, email: user.email ?? '', name, emailConfirmed: !!(user.email_confirmed_at ?? user.confirmed_at) };
   }
 
   async current() {
@@ -68,6 +69,26 @@ export class SupabaseAccountService implements AccountService {
     if (error) throw mapError(error);
   }
 
+  async resendConfirmation(email: string) {
+    const { error } = await this.client.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) throw mapError(error);
+  }
+
+  async refresh() {
+    // getUser() asks the server, unlike the cached session, so a confirmation made elsewhere shows up.
+    const { data, error } = await this.client.auth.getUser();
+    if (error) {
+      if (error.status === 0 || (error.message ?? '').toLowerCase().includes('fetch'))
+        throw new AccountError('network', 'We couldn’t reach the server. Check your connection and try again.');
+      return null;
+    }
+    return data.user ? this.account(data.user) : null;
+  }
+
   async deleteAccount() {
     // A SECURITY DEFINER function deletes auth.users for auth.uid(); profile and progress cascade.
     const { error } = await this.client.rpc('delete_my_account');
@@ -102,6 +123,8 @@ function mapError(error: { message?: string; status?: number; code?: string } | 
     // Generic on purpose: don't reveal whether the email has an account.
     return new AccountError('invalid_credentials', 'Email or password is incorrect.');
   }
+  if (code === 'over_email_send_rate_limit' || error?.status === 429 || msg.includes('security purposes'))
+    return new AccountError('rate_limited', 'We just sent an email. Please wait a minute before asking again.');
   if (code === 'user_already_exists' || msg.includes('already registered'))
     return new AccountError('email_taken', 'An account with this email already exists. Try signing in.');
   if (code === 'weak_password' || msg.includes('password'))

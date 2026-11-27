@@ -4,6 +4,8 @@ export interface Account {
   id: string;
   email: string;
   name: string;
+  /** Whether the provider has confirmed this email address. Always true in offline mode. */
+  emailConfirmed: boolean;
 }
 
 export type AccountErrorCode =
@@ -13,6 +15,7 @@ export type AccountErrorCode =
   | 'invalid_email'
   | 'not_confirmed'
   | 'not_supported'
+  | 'rate_limited'
   | 'network'
   | 'unknown';
 
@@ -47,6 +50,12 @@ export interface AccountService {
   signIn(email: string, password: string): Promise<Account>;
   signOut(): Promise<void>;
   requestPasswordReset(email: string): Promise<void>;
+  /** Whether the provider confirms emails, so confirmation can be resent and checked. */
+  readonly confirmsEmail: boolean;
+  /** Sends the confirmation link for this email again. */
+  resendConfirmation(email: string): Promise<void>;
+  /** Re-reads the signed-in account from the provider, so `emailConfirmed` is up to date. */
+  refresh(): Promise<Account | null>;
   /** Removes the account, profile and progress. */
   deleteAccount(): Promise<void>;
   loadProgress(): Promise<SaveState | null>;

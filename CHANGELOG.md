@@ -4,6 +4,10 @@ All notable changes to Lumber & Canopy are recorded here. The format follows [Ke
 
 ## [Unreleased]
 
+### Added
+
+- **Email confirmation in Settings:** the Account section shows whether your email is confirmed, checks again with the server when Settings opens, and lets you resend the confirmation link (with a 60-second cooldown) or check again. Players still waiting to confirm can enter their password to check after confirming on another device; their game then moves to the account without leaving play.
+
 ## [0.1.0] - 2026-11-27
 
 The first playable version: an eco-friendly cabin and garden game built on the misty valley diorama.
