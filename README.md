@@ -90,7 +90,16 @@ supabase/            Database schema and security policies
 context/             Design references, brand assets and the feature brief
 ```
 
-The main design notes live in [`context/features/pbi-game-enhancements.md`](context/features/pbi-game-enhancements.md). What changed and when is in the [changelog](CHANGELOG.md).
+## Documentation
+
+The [`docs/`](docs/) folder has the context for working on the game:
+
+- [Gameplay](docs/GAMEPLAY.md): every system and the numbers behind it.
+- [Decisions](docs/DECISIONS.md): why things are the way they are.
+- [Architecture](docs/ARCHITECTURE.md): how the code fits together, and how to add things.
+- [Art direction](docs/ART-DIRECTION.md): the look of the world and the UI.
+
+The original feature brief is [`context/features/pbi-game-enhancements.md`](context/features/pbi-game-enhancements.md). What changed and when is in the [changelog](CHANGELOG.md).
 
 ## Privacy
 
