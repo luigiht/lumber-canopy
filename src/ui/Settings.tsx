@@ -136,6 +136,8 @@ function AccountSettings() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const local = accounts().mode === 'local';
+  // Anyone who has signed up, including players still waiting to confirm their email.
+  const signedUp = !!account || !!pendingEmail;
 
   const remove = async () => {
     setBusy(true);
@@ -166,21 +168,25 @@ function AccountSettings() {
           Privacy
         </a>
       </div>
-      {account && (
+      {signedUp && (
         <div className={ui.row}>
           <button className={ui.text} onClick={() => void signOut()}>
-            Sign out
+            Log out
           </button>
           {!confirming ? (
             <button className={ui.text} onClick={() => setConfirming(true)}>
-              Delete my account
+              Delete account
             </button>
           ) : null}
         </div>
       )}
       {confirming && (
         <div className={ui.card} role="alertdialog" aria-label="Delete account">
-          <p className={ui.p}>Delete your account, profile and all your progress? This can’t be undone.</p>
+          <p className={ui.p}>
+            {account
+              ? 'Delete your account, profile and all your progress? This can’t be undone.'
+              : 'Delete the progress saved in this browser? This can’t be undone. Your email isn’t confirmed yet, so there’s no account online to remove: to remove the sign-up itself, confirm your email, sign in and delete it here.'}
+          </p>
           {error && <p className={ui.error}>{error}</p>}
           <div className={ui.row}>
             <button className={ui.text} onClick={() => void remove()} disabled={busy}>
@@ -220,7 +226,6 @@ const SECTIONS: Section[] = [
   { id: 'time', title: 'Time', content: <TimeSettings /> },
   { id: 'display', title: 'Display', content: <DisplaySettings /> },
   { id: 'controls', title: 'Controls', content: <ControlsHelp /> },
-  { id: 'account', title: 'Account', content: <AccountSettings /> },
 ];
 
 /** Pixel-style X drawn on a 9×9 grid so it stays crisp like the font. */
@@ -295,6 +300,13 @@ export function Settings() {
                 {s.content}
               </section>
             ))}
+            {/* Account comes last. */}
+            <section className={styles.section} aria-labelledby="settings-account">
+              <h3 id="settings-account" className={styles.sectionTitle}>
+                Account
+              </h3>
+              <AccountSettings />
+            </section>
           </div>
         </div>
       )}

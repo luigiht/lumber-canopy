@@ -14,9 +14,26 @@
   user-select: none;
 }
 
-.topLeft {
+/* Top-left column: calendar, then materials, then (on phones) messages. */
+.topLeftStack {
+  position: absolute;
   top: 16px;
   left: 16px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: calc(100vw - 96px);
+  pointer-events: none;
+}
+
+.topLeftStack > * {
+  pointer-events: auto;
+}
+
+.topLeft {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -480,23 +497,44 @@
   }
 }
 
-@media (max-width: 820px) {
-  .topLeft {
+/*
+ * Phones and small tablets. The bottom of the screen is one row: tools bottom-left, rotate
+ * bottom-right (stacked above the tools on narrow portrait screens). Panels sit above that row.
+ */
+@media (max-width: 900px) {
+  .topLeftStack {
     top: 12px;
     left: 12px;
+    gap: 6px;
   }
   .gear {
     top: 12px;
     right: 12px;
+    width: 44px;
+    height: 44px;
   }
-  /* Pinch zooms on touch screens; keep rotate buttons clear of the toolbar. */
   .bottomRight {
-    flex-direction: column;
+    flex-direction: row;
     right: 12px;
-    bottom: 150px;
+    bottom: 12px;
+    padding: 6px;
   }
+  .bottomRight button {
+    min-width: 40px;
+    height: 40px;
+  }
+  /* Pinch zooms on touch screens. */
   .zoomButton {
     display: none !important;
+  }
+  .settings {
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (max-width: 459px) {
+  .bottomRight {
+    bottom: 80px;
   }
 }
 

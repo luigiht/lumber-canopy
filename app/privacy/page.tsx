@@ -71,7 +71,7 @@ export default function PrivacyPage() {
         <ul>
           <li>
             <strong>Delete your account</strong>: in the game, open Settings (the gear), go to Account and choose
-            “Delete my account”. This permanently removes your account, your profile and all your progress.
+            “Delete account”. This permanently removes your account, your profile and all your progress.
           </li>
           <li>
             <strong>Questions or requests</strong>, including getting a copy of your data: contact us at [privacy

@@ -255,6 +255,8 @@ const TUTORIAL_TEXT: Record<(typeof TUTORIAL_STEPS)[number], { title: string; bo
 export function Coach() {
   const tutorial = useGame((s) => s.tutorial);
   const arrived = useGame((s) => s.arrived);
+  // On phones the fishing panel takes this spot, so the coach steps aside while fishing.
+  const fishingClass = useGame((s) => (s.fishing ? ui.whileFishing : ''));
   useGame((s) => s.build);
   useGame((s) => s.inventory);
   useGame((s) => s.pots);
@@ -264,7 +266,7 @@ export function Coach() {
     const key = TUTORIAL_STEPS[tutorial.step];
     const step = TUTORIAL_TEXT[key];
     return (
-      <div className={`${hud.panel} ${ui.coach}`} role="status" aria-live="polite">
+      <div className={`${hud.panel} ${ui.coach} ${fishingClass}`} role="status" aria-live="polite">
         <div className={ui.spread}>
           <strong className={ui.heading}>
             {step.title} <span className={ui.muted}>· step {tutorial.step + 1} of {TUTORIAL_STEPS.length}</span>
@@ -279,7 +281,7 @@ export function Coach() {
   }
   const goal = currentGoal();
   return goal ? (
-    <div className={`${hud.panel} ${ui.goal}`} role="status" aria-live="polite">
+    <div className={`${hud.panel} ${ui.goal} ${fishingClass}`} role="status" aria-live="polite">
       {goal}
     </div>
   ) : null;

@@ -128,8 +128,7 @@
 
 /* Key materials in two rows of four. */
 .resources {
-  top: 96px;
-  left: 16px;
+  position: relative !important;
   display: grid;
   grid-template-columns: repeat(4, auto);
   grid-template-rows: repeat(2, auto);
@@ -186,7 +185,8 @@
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(440px, calc(100vw - 200px));
+  /* Narrow enough to stay clear of the calendar and materials on the left, and the gear. */
+  width: min(440px, calc(100vw - 600px));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -197,22 +197,23 @@
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  max-width: min(460px, calc(100vw - 200px));
+  max-width: min(460px, calc(100vw - 600px));
   padding: 6px 12px;
   font-size: calc(15px * var(--text-scale, 1));
   text-align: center;
 }
 
+/* Desktop: top right, below the gear and clear of the coach. On phones: under the materials. */
 .toasts {
-  position: absolute;
-  top: 76px;
+  position: fixed;
+  top: 140px;
   right: 16px;
   z-index: 6;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
-  pointer-events: none;
+  pointer-events: none !important;
   max-width: min(320px, calc(100vw - 32px));
 }
 
@@ -415,27 +416,91 @@
   background: linear-gradient(180deg, #ffc768, #f0a73c 55%, #d98c26) !important;
 }
 
-@media (max-width: 820px) {
-  .resources {
-    top: 88px;
+/*
+ * Phones and small tablets (see hud.module.css for the matching rotate buttons).
+ * Bottom row: toolbar at 12px (60px tall). Coach, goal and fishing share the strip above it.
+ */
+@media (max-width: 900px) {
+  .toasts {
+    position: static;
+    align-items: flex-start;
+    max-width: min(360px, calc(100vw - 24px));
+  }
+  .coach,
+  .goal,
+  .fishing {
+    top: auto;
     left: 12px;
+    right: 12px;
+    bottom: 80px;
+    transform: none;
+    width: auto;
+    max-width: none;
   }
   .coach,
   .goal {
-    top: auto;
-    bottom: 84px;
-    width: calc(100vw - 24px);
-    max-width: none;
+    max-height: 34dvh;
+    overflow-y: auto;
+  }
+  .whileFishing {
+    display: none !important;
   }
   .toolbar {
+    left: 12px;
     bottom: 12px;
+    transform: none;
+    gap: 4px;
+    padding: 6px;
   }
   .toolbar button {
-    min-width: 44px !important;
-    height: 44px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+  }
+  .divider {
+    margin: 2px 0;
+  }
+}
+
+/* Phones: at most two messages at a time, so they never reach the panels below. */
+@media (max-width: 900px) {
+  .toasts > :nth-last-child(n + 3) {
+    display: none;
+  }
+}
+
+/*
+ * Short landscape phones: little height, plenty of width. Messages go top right beside the gear,
+ * fishing goes to the right (clear of the left column), and the coach stays short.
+ */
+@media (max-height: 500px) and (min-width: 460px) {
+  .toasts {
+    position: fixed;
+    top: 12px;
+    right: 68px;
+    align-items: flex-end;
+    max-width: min(300px, calc(100vw - 380px));
   }
   .fishing {
-    bottom: 150px;
+    left: auto;
+    width: min(340px, calc(100vw - 320px));
+  }
+  .coach,
+  .goal {
+    left: 300px;
+    max-height: 30dvh;
+  }
+  .toolbar button {
+    min-width: 38px !important;
+    height: 38px !important;
+  }
+}
+
+/* Narrow portrait phones: rotate buttons stack above the toolbar, so the strip moves up. */
+@media (max-width: 459px) {
+  .coach,
+  .goal,
+  .fishing {
+    bottom: 144px;
   }
 }
 

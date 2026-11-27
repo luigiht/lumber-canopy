@@ -137,18 +137,22 @@ export function Hud() {
         </>
       )}
 
-      <div className={`${styles.panel} ${styles.topLeft}`} aria-label="Calendar">
-        <span className={styles.clock} aria-label={`Time ${formatHour(hour)}`}>
-          <ItemIcon icon={isNight(hour) ? 'moon' : 'sun'} /> {formatHour(hour)}
-        </span>
-        <span className={styles.calendar}>
-          {seasonOf(day)} · Day {day}
-        </span>
+      {/* Calendar, materials and (on phones) messages stack in one column, so they never overlap. */}
+      <div className={styles.topLeftStack}>
+        <div className={`${styles.panel} ${styles.topLeft}`} aria-label="Calendar">
+          <span className={styles.clock} aria-label={`Time ${formatHour(hour)}`}>
+            <ItemIcon icon={isNight(hour) ? 'moon' : 'sun'} /> {formatHour(hour)}
+          </span>
+          <span className={styles.calendar}>
+            {seasonOf(day)} · Day {day}
+          </span>
+        </div>
+        {playing && arrived && <ResourceBar />}
+        {playing && <Toasts />}
       </div>
 
       {playing && arrived && (
         <>
-          <ResourceBar />
           {!inside && <BuildPrompt />}
           <Coach />
           <ToolBar />
@@ -157,7 +161,6 @@ export function Hud() {
       )}
 
       {playing && <Settings />}
-      {playing && <Toasts />}
 
       <div className={`${styles.panel} ${styles.bottomRight}`}>
         <button onClick={() => engine?.iso.rotate(-1)} aria-label="Rotate left (Q)">

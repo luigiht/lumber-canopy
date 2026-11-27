@@ -42,6 +42,14 @@
   text-align: center;
 }
 
+/* The white pixel logo, sized to the card. */
+.logo {
+  display: block;
+  width: min(320px, 100%);
+  height: auto;
+  margin: 2px auto 0;
+}
+
 .heading {
   margin: 0;
   font-weight: normal;

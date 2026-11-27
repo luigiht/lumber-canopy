@@ -161,7 +161,7 @@ The otter's rare finds favour seeds (weight 3 each vs 1 for cuttings), so it som
 - **Email confirmation (online):** when it's on, the player can play straight away. Progress is kept in the browser until they confirm and sign in, then moved to their account.
 - **When it saves:** shortly after any meaningful change, every 30 seconds, and when the tab is hidden or closed.
 - **Returning players** see a summary first: cabin stage, plants, times propagated, tool levels and coins.
-- **Settings → Account** offers sign out, delete my account (permanent) and a link to the Privacy page.
+- **Settings → Account** (the last section) offers **Log out**, **Delete account** (permanent) and a link to the Privacy page. Both buttons also show for players still waiting to confirm their email; for them, Delete removes the progress kept in the browser.
 
 ## HUD and controls
 

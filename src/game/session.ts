@@ -193,9 +193,13 @@ export async function signOut() {
   window.location.reload();
 }
 
+/**
+ * Deletes the account, profile and progress. Before the email is confirmed there's no signed-in
+ * account to remove online, so only the progress kept in this browser is deleted.
+ */
 export async function deleteAccount() {
   const id = get().account?.id;
-  await accounts().deleteAccount();
+  if (id) await accounts().deleteAccount();
   if (id) writeJSON(backupKey(id), null);
   writeJSON(PENDING, null);
   window.location.href = '/';

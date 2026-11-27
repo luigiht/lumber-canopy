@@ -55,6 +55,15 @@ Cosy but moody: a misty, overcast forest valley in chunky voxels with ink outlin
   - 16×16 grid with a one-pixel dark outline in a deep tone of the icon's own colour.
   - Top-left highlight, bottom-right shadow.
   - Simple button glyphs (plus, minus, rotate) are 12×12 in parchment with a dark outline.
+- **Scrollbars:** pixel art: a square carved-wood handle with a hard bevel on a dark wood track, no arrows (`app/globals.css`). Firefox only supports scrollbar colours, so there it's a plain wood-coloured scrollbar.
+- **Layout (no overlaps):**
+  - **Top left:** calendar, materials and, on phones, messages share one stacked column.
+  - **Phones and small tablets (900px wide or less):**
+    - The bottom row has the tools on the left and rotate on the right. Rotate stacks above the tools under 460px wide.
+    - The tutorial, goal and fishing panels share the strip above that row, and the goal hides while fishing.
+    - At most two messages show at once.
+    - Short landscape screens move messages beside the gear and fishing to the right.
+  - Keep new HUD pieces inside these zones (`hud.module.css`, `ui.module.css`).
 - **Markers:** small wood buttons with an icon floating over each usable thing. The name shows on hover.
 - **Loading screen:** the intro illustration with a dark vignette, the white logo, a stepped pixel spinner and small white text.
 - **Motion:** short and soft (fades, gentle bobbing). Respect `prefers-reduced-motion`.

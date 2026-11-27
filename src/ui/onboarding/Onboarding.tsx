@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import Image from 'next/image';
 import { useGame } from '@/game/store';
 import { CABIN } from '@/config/cabin';
 import { TOOLS, TOOL_IDS } from '@/game/tools';
@@ -97,7 +98,9 @@ function StartScreen() {
   const local = accounts().mode === 'local';
   return (
     <Card label="Lumber and Canopy">
-      <h1 className={styles.title}>Lumber &amp; Canopy</h1>
+      <h1 className={styles.title}>
+        <Image className={styles.logo} src="/brand/logo-full.svg" alt="Lumber & Canopy" width={702} height={327} priority />
+      </h1>
       <p className={styles.tagline}>Build a cabin, fill it with plants, and leave the forest as you found it.</p>
       <div className={styles.actions}>
         <button className={ui.primary} onClick={() => go('signup')} autoFocus>
