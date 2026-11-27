@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useGame } from '@/game/store';
-import { MATERIALS, parsePlantItem } from '@/game/items';
+import { MATERIALS, MATERIAL_IDS, parsePlantItem } from '@/game/items';
 import { TOOLS, TOOL_IDS } from '@/game/tools';
 import { STATIONS } from '@/config/stations';
 import { SPECIES } from '@/game/plants';
@@ -25,25 +25,26 @@ import ui from './ui.module.css';
 export function ResourceBar() {
   const inventory = useGame((s) => s.inventory);
   const coins = useGame((s) => s.coins);
-  const n = (id: string) => inventory[id] ?? 0;
-  const starts = Object.entries(inventory).reduce((sum, [id, c]) => {
-    const p = parsePlantItem(id);
-    return p && p.kind !== 'plant' ? sum + c : sum;
-  }, 0);
+  // Seeds, cuttings and grown plants of every species, totalled by kind.
+  const plantTotal = (kind: 'seed' | 'cutting' | 'plant') =>
+    Object.entries(inventory).reduce((sum, [id, c]) => (parsePlantItem(id)?.kind === kind ? sum + c : sum), 0);
+  // Every collectable item, in the bag's order: materials, then planting, then grown plants and coins.
   const chips: [string, string, number][] = [
-    [MATERIALS.driftwood.icon, 'Driftwood', n('driftwood')],
-    [MATERIALS.scrapWood.icon, 'Scrap wood', n('scrapWood')],
-    [MATERIALS.stone.icon, 'Stones', n('stone')],
-    [MATERIALS.metal.icon, 'Metal scraps', n('metal')],
-    [MATERIALS.soil.icon, 'Soil', n('soil')],
-    [MATERIALS.rope.icon, 'Rope', n('rope')],
-    ['sprout', 'Seeds and cuttings', starts],
+    ...MATERIAL_IDS.map((id): [string, string, number] => [MATERIALS[id].icon, MATERIALS[id].name, inventory[id] ?? 0]),
+    ['seed', 'Seeds', plantTotal('seed')],
+    ['sprout', 'Cuttings', plantTotal('cutting')],
+    ['potted', 'Grown plants', plantTotal('plant')],
     ['coin', 'Coins', coins],
   ];
   return (
     <div className={`${hud.panel} ${ui.resources}`} aria-label="Materials">
       {chips.map(([icon, label, value]) => (
-        <span key={label} className={ui.chip} title={label} aria-label={`${label}: ${value}`}>
+        <span
+          key={label}
+          className={`${ui.chip} ${value === 0 ? ui.chipEmpty : ''}`}
+          title={label}
+          aria-label={`${label}: ${value}`}
+        >
           <span className={ui.icon} aria-hidden="true">
             <ItemIcon icon={icon} />
           </span>

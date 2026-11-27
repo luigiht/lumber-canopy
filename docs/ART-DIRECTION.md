@@ -65,12 +65,12 @@ Cosy but moody: a misty, overcast forest valley in chunky voxels with ink outlin
     - Short landscape screens move messages beside the gear and fishing to the right.
   - Keep new HUD pieces inside these zones (`hud.module.css`, `ui.module.css`).
 - **Markers:** small wood buttons with an icon floating over each usable thing. The name shows on hover.
-- **Loading screen:** the intro illustration with a dark vignette, the white logo, a stepped pixel spinner and small white text.
+- **Loading screen:** the intro illustration with a dark vignette, the parchment logo, a stepped parchment pixel spinner and small parchment text.
 - **Motion:** short and soft (fades, gentle bobbing). Respect `prefers-reduced-motion`.
 
 ## Brand
 
-- **Logo:** [`context/brand/logo-full.svg`](../context/brand/logo-full.svg), white with a drop shadow, so use it on dark or busy backgrounds. A copy is served at `/brand/logo-full.svg`.
+- **Logo:** [`context/brand/logo-full.svg`](../context/brand/logo-full.svg), white with a drop shadow, so use it on dark or busy backgrounds. A copy is served at `/brand/logo-full.svg`. The game uses a parchment version, `/brand/logo-parchment.svg` (`#f6e7c8`, the UI text colour), on the start screen and the loading screen.
 - **App icon:** the cosy cabin from `context/images/icon.svg`, rendered to `app/favicon.ico`, `app/icon.png` and `app/apple-icon.png`. The Apple icon sits on a solid `#1d2a1f` background.
 - **Share image:** `context/images/og-image.svg`, rendered to `app/opengraph-image.jpg` (1200×630).
 - **Theme colour:** `#1d2a1f`, a deep forest green.

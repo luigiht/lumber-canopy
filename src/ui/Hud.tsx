@@ -103,7 +103,7 @@ function LoadingScreen() {
       />
       <Image
         className={styles.loadingLogo}
-        src="/brand/logo-full.svg"
+        src="/brand/logo-parchment.svg"
         alt="Lumber & Canopy"
         width={702}
         height={327}

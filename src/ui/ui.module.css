@@ -127,13 +127,18 @@
 /* ---- HUD pieces ---- */
 
 /* Key materials in two rows of four. */
+/* Every collectable item: two rows of seven (three rows on phones). */
 .resources {
   position: relative !important;
   display: grid;
-  grid-template-columns: repeat(4, auto);
-  grid-template-rows: repeat(2, auto);
+  grid-template-columns: repeat(7, auto);
   gap: 4px 12px;
   padding: 8px 10px;
+}
+
+/* Items you have none of fade back, so what you do have stands out. */
+.chipEmpty {
+  opacity: 0.45;
 }
 
 .chip {
@@ -421,6 +426,11 @@
  * Bottom row: toolbar at 12px (60px tall). Coach, goal and fishing share the strip above it.
  */
 @media (max-width: 900px) {
+  .resources {
+    grid-template-columns: repeat(5, auto);
+    gap: 3px 9px;
+    padding: 6px 8px;
+  }
   .toasts {
     position: static;
     align-items: flex-start;

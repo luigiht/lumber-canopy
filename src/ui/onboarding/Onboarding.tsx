@@ -99,7 +99,7 @@ function StartScreen() {
   return (
     <Card label="Lumber and Canopy">
       <h1 className={styles.title}>
-        <Image className={styles.logo} src="/brand/logo-full.svg" alt="Lumber & Canopy" width={702} height={327} priority />
+        <Image className={styles.logo} src="/brand/logo-parchment.svg" alt="Lumber & Canopy" width={702} height={327} priority />
       </h1>
       <p className={styles.tagline}>Build a cabin, fill it with plants, and leave the forest as you found it.</p>
       <div className={styles.actions}>

@@ -413,7 +413,7 @@
   justify-content: center;
   gap: 18px;
   padding: 16px;
-  color: #fff;
+  color: var(--parchment);
   background: #1a1d1b;
   overflow: hidden;
 }
@@ -449,7 +449,7 @@
   -webkit-font-smoothing: none;
   font-size: calc(16px * var(--text-scale, 1));
   letter-spacing: 0.5px;
-  color: #fff;
+  color: var(--parchment);
 }
 
 /* Pixel spinner: eight squares in a ring; a bright pixel chases around it in steps. */
@@ -463,7 +463,7 @@
 .pixelSpinner span {
   width: 8px;
   height: 8px;
-  background: #fff;
+  background: var(--parchment);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
   opacity: 0.25;
   animation: pixelChase 0.96s steps(1, end) infinite;
