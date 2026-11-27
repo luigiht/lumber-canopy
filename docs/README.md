@@ -8,6 +8,7 @@ Context for anyone working on the game, whether a person or an AI assistant. Rea
 | [DECISIONS.md](DECISIONS.md) | Why things are the way they are: each significant choice, its reason and what it rules out. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How the code is organised, how data flows, and how to add common things. |
 | [ART-DIRECTION.md](ART-DIRECTION.md) | The look: voxel scale, palette, lighting, mist, UI, fonts and pixel icons. |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Deploying to Vercel on every push: one-time setup, environment variables, Supabase URLs. |
 
 Elsewhere:
 

@@ -3,8 +3,16 @@
  * search and AI assistants (GEO), the web app manifest and llms.txt. Keep it in step with the game.
  */
 
-/** The public address. Set NEXT_PUBLIC_SITE_URL once deployed; falls back to localhost for dev. */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+/**
+ * The public address, for share cards, canonical links and the sitemap. In order:
+ * NEXT_PUBLIC_SITE_URL (a custom domain), then the production address Vercel provides on every
+ * deployment, then localhost for development.
+ */
+const vercelProduction = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (vercelProduction ? `https://${vercelProduction}` : 'http://localhost:3000')
+).replace(/\/$/, '');
 
 export const SITE = {
   name: 'Lumber & Canopy',

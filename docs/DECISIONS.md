@@ -172,7 +172,13 @@ The character carries a hammer, rod or pickaxe; the original axe was removed.
 
 **Decision:** the project uses pnpm (`pnpm-lock.yaml`).
 
-**Note:** `package-lock.json` is stale and should be removed.
+The stale `package-lock.json` was removed so Vercel (and anyone else) installs with pnpm and the locked versions.
+
+### Deployed on Vercel from GitHub
+
+**Decision:** Vercel's GitHub integration deploys `main` to production on every push, and previews other branches. There's no `vercel.json`; the defaults fit a Next.js app.
+
+**Implication:** the site address falls back to Vercel's production URL. A broken build blocks the deploy, so run the checks before pushing. Details are in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Open items
 

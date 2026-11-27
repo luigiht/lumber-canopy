@@ -65,7 +65,9 @@ Copy `.env.example` to `.env.local` and fill in what you need:
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL. Leave empty for offline mode. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase **publishable** (anon) key. Never use the secret or service-role key here: `NEXT_PUBLIC_` values are sent to the browser. |
-| `NEXT_PUBLIC_SITE_URL` | The public address once deployed, used for share cards, canonical links and the sitemap. |
+| `NEXT_PUBLIC_SITE_URL` | A custom domain, used for share cards, canonical links and the sitemap. On Vercel, the production address is used automatically when this is empty. |
+
+Deploying: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Once the repo is connected to Vercel, every push to `main` goes live.
 
 ### Setting up Supabase
 
