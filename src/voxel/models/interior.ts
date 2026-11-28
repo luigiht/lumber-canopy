@@ -33,16 +33,25 @@ const C = {
   blanket: 0x5b7aa6,
   blanketDark: 0x405d86,
   book: [0x9c3b2e, 0x3f6a8a, 0xc49a3a, 0x4f7a3a, 0x6b4a8a],
+  // Forest-green upholstery and a green-and-gold rug, as in the cabin asset sheets.
+  moss: 0x4f6a3a,
+  mossDark: 0x3a5029,
+  mossLight: 0x6a8a4a,
+  gold: 0xc49a3a,
+  goldDark: 0x9a7428,
+  log: 0x7a4d2b,
+  logLight: 0x8f5d36,
+  logDark: 0x5e3a20,
+  beam: P.honey,
+  beamDark: 0x8a5a31,
 };
-
-const T = 16; // voxels per tile
 
 // ---- Structure ------------------------------------------------------------------------------
 
-/** Ground floor: wide planks in the living room, stone tiles in the kitchen. */
-export function groundFloor(kitchenFromX: number): VoxelModel {
-  const m = new VoxelModel(8 * T, 4, 6 * T);
-  m.box(0, 0, 0, 8 * T - 1, 3, 6 * T - 1, (x, _y, z) => {
+/** Ground floor (`w` × `d` voxels): wide planks in the living room, stone tiles in the kitchen. */
+export function groundFloor(w: number, d: number, kitchenFromX: number): VoxelModel {
+  const m = new VoxelModel(w, 4, d);
+  m.box(0, 0, 0, w - 1, 3, d - 1, (x, _y, z) => {
     if (x >= kitchenFromX) {
       const edge = x % 8 === 0 || z % 8 === 0;
       return edge ? C.tileDark : ((x >> 3) + (z >> 3)) % 2 ? C.tile : C.creamDark;
@@ -55,23 +64,25 @@ export function groundFloor(kitchenFromX: number): VoxelModel {
   return m;
 }
 
-/** Loft floor over the back half, with beams below. The stairs arrive at its front edge. */
-export function loftFloor(): VoxelModel {
-  const m = new VoxelModel(8 * T, 4, 3 * T);
-  m.box(0, 0, 0, 8 * T - 1, 3, 3 * T - 1, (x, y, z) => {
-    if (y === 0) return x % 24 < 3 ? C.plankSeam : C.plankDark; // beams underneath
+/** Loft floor over the back half (`w` × `d` voxels), with beams below. The stairs arrive at its front edge. */
+export function loftFloor(w: number, d: number): VoxelModel {
+  const m = new VoxelModel(w, 4, d);
+  m.box(0, 0, 0, w - 1, 3, d - 1, (x, y, z) => {
+    if (y === 0) return x % 24 < 3 ? C.beamDark : C.plankDark; // beams underneath
     return z % 6 === 5 ? C.plankSeam : [C.plank, C.plankLight][Math.floor(hash3(x >> 5, z >> 3, 5) * 2)];
   });
   return m;
 }
 
-/** Railing along the loft edge. Long axis along x. */
+/** Railing along the loft edge: honey posts and handrail with turned balusters. Long axis along x. */
 export function railing(length: number): VoxelModel {
-  const m = new VoxelModel(length, 14, 2);
+  const m = new VoxelModel(length, 15, 2);
   for (let x = 0; x < length; x++) {
     m.box(x, 12, 0, x, 13, 1, C.trim);
-    m.set(x, 6, 0, C.plankDark);
-    if (x % 12 < 2 || x === length - 1) m.box(x, 0, 0, x, 11, 1, C.plankSeam);
+    m.set(x, 14, 0, C.beamDark);
+    m.box(x, 1, 0, x, 1, 1, C.beamDark);
+    if (x % 16 < 2 || x === length - 1) m.box(x, 0, 0, x, 14, 1, C.beam);
+    else if (x % 4 === 0) m.box(x, 2, 0, x, 11, 0, (_x, y) => (y % 5 === 0 ? C.plankLight : C.plank));
   }
   return m;
 }
@@ -104,14 +115,32 @@ export interface WallOpening {
  * A plank wall, `length` long (along x), with windows and doors. Pivot at the centre of the base;
  * rotate it into place. Windows get a honey frame, glass and a cross mullion.
  */
-export function wall(length: number, height: number, openings: WallOpening[]): VoxelModel {
-  const m = new VoxelModel(length, height, 4);
-  m.box(0, 0, 0, length - 1, height - 1, 3, (x, y) => {
-    if (y % 6 === 5) return C.wallDark;
-    return [C.wall, C.wallLight, C.wall][Math.floor(hash3(Math.floor((x + (Math.floor(y / 6) * 17)) / 32), Math.floor(y / 6), 9) * 3)];
-  });
-  // Skirting and a ceiling-height trim line.
+export function wall(length: number, height: number, openings: WallOpening[], gable = 0): VoxelModel {
+  const m = new VoxelModel(length, height + gable, 4);
+  // Stacked logs: rounded courses five voxels high with a dark chink line between them.
+  const log = (x: number, y: number) => {
+    const course = Math.floor(y / 5);
+    if (y % 5 === 4) return C.logDark;
+    const t = hash3(Math.floor((x + course * 23) / 40), course, 9);
+    return y % 5 === 0 ? C.logLight : t < 0.5 ? C.log : C.wall;
+  };
+  m.box(0, 0, 0, length - 1, height - 1, 3, log);
+  // A gable end: the wall keeps rising to a peak under the roof.
+  const mid = (length - 1) / 2;
+  for (let y = height; y < height + gable; y++)
+    for (let x = 0; x < length; x++) if (Math.abs(x - mid) <= ((height + gable - 1 - y) / gable) * mid) m.box(x, y, 0, x, y, 3, log(x, y));
+  // Timber frame: posts every two tiles and at the ends, a beam along the top, a skirting board.
+  for (let x = 0; x < length; x++) if (x % 32 < 3 || x >= length - 3) m.box(x, 0, 3, x, height - 1, 3, x % 32 === 1 ? C.beam : C.beamDark);
+  m.box(0, height - 3, 2, length - 1, height - 1, 3, (_x, y) => (y === height - 1 ? C.beamDark : C.beam));
   m.box(0, 0, 0, length - 1, 1, 3, C.plankSeam);
+  if (gable) {
+    // Rafters along both slopes of the gable, and a king post up the middle.
+    for (let x = 0; x < length; x++) {
+      const top = height + gable - 1 - Math.round((Math.abs(x - mid) / mid) * gable);
+      if (top >= height) m.box(x, Math.max(height, top - 2), 2, x, top, 3, C.beam);
+    }
+    m.box(Math.floor(mid) - 1, height, 3, Math.ceil(mid) + 1, height + gable - 1, 3, C.beam);
+  }
   for (const o of openings) {
     m.box(o.from - 1, o.bottom - 1, 0, o.to + 1, o.top + 1, 3, C.trim);
     for (let x = o.from; x <= o.to; x++)
@@ -134,12 +163,14 @@ export function wall(length: number, height: number, openings: WallOpening[]): V
 /** Three-seat sofa; its back is on the -z side. */
 export function sofa(): VoxelModel {
   const m = new VoxelModel(36, 14, 15);
-  m.box(0, 0, 0, 35, 5, 14, C.rustDark);
-  m.box(2, 6, 4, 33, 7, 14, (x) => (x % 11 === 0 ? C.rustDark : C.rust));
-  m.box(0, 6, 0, 35, 13, 4, (x, y) => (y === 13 ? C.rustLight : x % 12 === 0 ? C.rustDark : C.rust));
-  for (const x of [0, 1, 34, 35]) m.box(x, 6, 0, x, 10, 14, C.rustLight);
-  m.box(4, 8, 5, 9, 11, 6, C.cream); // cushion
-  m.box(26, 8, 5, 31, 11, 6, C.teal);
+  m.box(0, 0, 0, 35, 1, 14, C.plankSeam); // wooden base
+  m.box(0, 2, 0, 35, 5, 14, C.mossDark);
+  m.box(2, 6, 4, 33, 7, 14, (x) => (x % 11 === 0 ? C.mossDark : C.moss));
+  m.box(0, 6, 0, 35, 13, 4, (x, y) => (y === 13 ? C.mossLight : x % 12 === 0 ? C.mossDark : C.moss));
+  for (const x of [0, 1, 34, 35]) m.box(x, 6, 0, x, 10, 14, C.plankDark); // wooden arms
+  m.box(4, 8, 5, 9, 11, 6, C.cream); // cushions
+  m.box(26, 8, 5, 31, 11, 6, C.gold);
+  m.box(15, 8, 5, 20, 11, 6, C.rust);
   return m;
 }
 
@@ -157,36 +188,70 @@ export function rug(w: number, d: number, main: number, border: number): VoxelMo
     const e = Math.min(x, z, w - 1 - x, d - 1 - z);
     if (e === 0) return border;
     if (e === 2) return C.cream;
-    return (x + z) % 8 < 4 ? main : border;
+    if (e < 4) return main;
+    // A diamond medallion in the middle and little motifs around it.
+    const dx = Math.abs(x - (w - 1) / 2) / (w / 2);
+    const dz = Math.abs(z - (d - 1) / 2) / (d / 2);
+    const r = dx + dz;
+    if (Math.abs(r - 0.55) < 0.06) return C.cream;
+    if (r < 0.5) return Math.abs(r - 0.25) < 0.07 ? border : main;
+    return (x + z) % 10 === 0 || (x - z + 100) % 10 === 0 ? border : main;
   });
   return m;
 }
 
-/** Cast-iron wood stove with a glowing fire window. Back on the -x side. */
-export function woodStove(): VoxelModel {
-  const m = new VoxelModel(12, 14, 14);
-  m.box(1, 2, 1, 11, 13, 13, C.iron);
-  m.box(1, 13, 1, 11, 13, 13, C.ironLight);
-  for (const [x, z] of [[1, 1], [10, 1], [1, 12], [10, 12]]) m.box(x, 0, z, x + 1, 1, z + 1, C.iron);
-  m.box(11, 4, 4, 11, 9, 9, C.fire);
-  m.box(11, 5, 5, 11, 7, 8, C.fireHot);
-  m.box(0, 0, 0, 0, 0, 13, C.tileDark);
+/**
+ * Stone fireplace against a wall (back on -x): a wide hearth, a firebox with a glowing fire and logs,
+ * a honey mantel with candles and a jar, and the chimney breast rising `height` voxels to the roof.
+ * Depth along x is 16, width along z is 32.
+ */
+export function fireplace(height: number): VoxelModel {
+  const m = new VoxelModel(16, height, 32);
+  const stone = (x: number, y: number, z: number) => {
+    const u = z + x;
+    const row = Math.floor(y / 3);
+    const shifted = u + (row % 2) * 3;
+    if (y % 3 === 2 || shifted % 5 === 0) return 0x4e4d4a;
+    return [P.stoneLight, P.stone, P.stone, P.stoneDark][Math.floor(hash3(Math.floor(shifted / 5), row, 4) * 4)];
+  };
+  m.box(0, 0, 0, 15, 1, 31, P.stoneDark); // hearth
+  m.box(0, 2, 2, 11, 22, 29, stone); // firebox surround
+  m.box(5, 2, 8, 11, 12, 23, C.iron); // firebox opening (dark)
+  m.box(5, 13, 7, 11, 13, 24, P.stoneLight); // lintel
+  m.box(6, 2, 10, 9, 3, 21, (x, _y, z) => ((x + z) % 3 === 0 ? P.stumpRing : P.bark)); // logs
+  m.box(7, 4, 11, 10, 7, 20, (x, y) => (y > 5 || x === 10 ? C.fireHot : C.fire)); // flames
+  m.box(8, 8, 13, 9, 9, 18, C.fire);
+  m.box(0, 23, 0, 13, 24, 31, (x) => (x === 13 ? C.beamDark : C.beam)); // mantel
+  m.box(10, 25, 4, 11, 28, 5, C.cream); // candles
+  m.box(10, 25, 26, 11, 27, 27, C.cream);
+  m.set(10, 29, 4, C.fireHot);
+  m.set(10, 28, 26, C.fireHot);
+  m.box(9, 25, 14, 12, 29, 17, C.glass); // a jar
+  m.box(0, 25, 6, 8, height - 1, 25, stone); // chimney breast
   return m;
 }
 
-export function stovePipe(height: number): VoxelModel {
-  const m = new VoxelModel(4, height, 4);
-  m.box(0, 0, 0, 3, height - 1, 3, (_x, y) => (y % 12 === 0 ? C.ironLight : C.iron));
-  return m;
-}
-
-/** Armchair; back on the -z side. */
+/** Armchair in green with wooden arms and a gold cushion; back on the -z side. */
 export function armchair(): VoxelModel {
   const m = new VoxelModel(14, 14, 14);
-  m.box(0, 0, 0, 13, 5, 13, C.tealDark);
-  m.box(2, 6, 4, 11, 7, 13, C.teal);
-  m.box(0, 6, 0, 13, 13, 3, C.teal);
-  for (const x of [0, 1, 12, 13]) m.box(x, 6, 0, x, 10, 13, C.tealDark);
+  m.box(0, 0, 0, 13, 1, 13, C.plankSeam);
+  m.box(0, 2, 0, 13, 5, 13, C.mossDark);
+  m.box(2, 6, 4, 11, 7, 13, C.moss);
+  m.box(0, 6, 0, 13, 13, 3, (_x, y) => (y === 13 ? C.mossLight : C.moss));
+  for (const x of [0, 1, 12, 13]) m.box(x, 6, 0, x, 10, 13, C.plankDark);
+  m.box(4, 8, 4, 9, 10, 5, C.gold);
+  return m;
+}
+
+/** Small round-ish side table with a lantern on it. */
+export function sideTable(): VoxelModel {
+  const m = new VoxelModel(8, 14, 8);
+  m.box(0, 8, 0, 7, 9, 7, C.plankLight);
+  for (const [x, z] of [[1, 1], [5, 1], [1, 5], [5, 5]]) m.box(x, 0, z, x + 1, 7, z + 1, C.plankSeam);
+  m.box(2, 3, 2, 5, 3, 5, C.plankDark); // lower shelf
+  m.box(3, 10, 3, 4, 10, 4, C.iron);
+  m.box(3, 11, 3, 4, 12, 4, C.fireHot);
+  m.box(3, 13, 3, 4, 13, 4, C.iron);
   return m;
 }
 
@@ -279,6 +344,22 @@ export function nightstand(): VoxelModel {
   m.box(1, 6, 9, 8, 8, 9, C.plank);
   m.box(4, 3, 9, 5, 3, 9, C.trim);
   m.box(4, 7, 9, 5, 7, 9, C.trim);
+  return m;
+}
+
+/** Low sideboard with three cupboard doors and a drawer rail; back on -z, top free for a pot. */
+export function sideboard(width: number): VoxelModel {
+  const m = new VoxelModel(width, 12, 9);
+  for (const x of [1, width - 3]) m.box(x, 0, 1, x + 1, 1, 7, C.plankSeam); // feet
+  m.box(0, 2, 0, width - 1, 10, 8, C.plankDark);
+  m.box(0, 11, 0, width - 1, 11, 8, C.plankLight); // top board
+  const bay = Math.floor((width - 2) / 3);
+  for (let i = 0; i < 3; i++) {
+    const x0 = 1 + i * bay;
+    m.box(x0, 3, 8, x0 + bay - 2, 7, 8, C.plank); // door
+    m.box(x0 + (bay >> 1) - 1, 5, 8, x0 + (bay >> 1) - 1, 5, 8, C.trim); // knob
+  }
+  m.box(1, 9, 8, width - 2, 9, 8, C.plankSeam); // drawer rail
   return m;
 }
 

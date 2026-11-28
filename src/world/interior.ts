@@ -8,6 +8,7 @@ import {
   chair,
   coffeeTable,
   counter,
+  fireplace,
   floorLamp,
   groundFloor,
   loftFloor,
@@ -15,19 +16,19 @@ import {
   railing,
   rug,
   saucer,
+  sideboard,
+  sideTable,
   sofa,
   stairs,
-  stovePipe,
   table,
   tableLamp,
   wall,
   wallShelf,
   wardrobe,
-  woodStove,
   lowBookshelf,
   recordPlayer,
 } from '@/voxel/models/interior';
-import { pottedPlant } from '@/voxel/models/stations';
+import { pottedPlant, potStyleFor } from '@/voxel/models/stations';
 import { INTERIOR, interiorWalkable, type Floor } from '@/config/interior';
 import { DECOR_SLOTS, STATIONS } from '@/config/stations';
 import type { SpeciesId } from '@/game/plants';
@@ -36,6 +37,8 @@ import { NavGrid } from './nav';
 const T = 16;
 const V = 1 / T;
 const { minX, maxX, minZ, maxZ, wallThickness: WT, wallHeight, floorY, loftEdgeZ, kitchenX, stairs: ST, door } = INTERIOR;
+/** The living-room rug: forest green with a gold pattern. */
+const C_RUG = { main: 0x3a5029, border: 0xc49a3a };
 
 /** Marker heights above each inside station's floor. */
 const MARKER_LIFT = 1.0;
@@ -69,11 +72,13 @@ export class Interior {
     this.group.visible = false;
 
     // Floors.
-    const ground = this.add(groundFloor(Math.round((kitchenX - minX) * T)), 0, 0, 0);
+    const W = Math.round((maxX - minX) * T);
+    const D = Math.round((maxZ - minZ) * T);
+    const ground = this.add(groundFloor(W, D, Math.round((kitchenX - minX) * T)), 0, 0, 0);
     ground.userData.floor = 0;
     this.pickables.push(ground as THREE.Mesh);
     // The stairs' top step meets the loft edge, so the loft floor needs no opening.
-    const loft = this.add(loftFloor(), 0, floorY[1] - 4 * V, (minZ + loftEdgeZ) / 2);
+    const loft = this.add(loftFloor(W, Math.round((loftEdgeZ - minZ) * T)), 0, floorY[1] - 4 * V, (minZ + loftEdgeZ) / 2);
     loft.userData.floor = 1;
     this.pickables.push(loft as THREE.Mesh);
     const railLen = Math.round((ST.x0 - minX) * T);
@@ -82,17 +87,23 @@ export class Interior {
     const sd = Math.round((ST.z1 - ST.z0) * T);
     this.add(stairs(sw, sd, Math.round((floorY[1] - floorY[0]) * T), ST.steps), (ST.x0 + ST.x1) / 2, floorY[0], (ST.z0 + ST.z1) / 2);
 
-    // Walls: back (-z), front (+z), left (-x), right (+x), with windows and the front door.
+    // Walls: back (-z, a tall gable end under the roof peak), front (+z), left (-x), right (+x),
+    // with windows and the front door.
     const h = Math.round(wallHeight * T);
     const lenX = Math.round((maxX - minX + 2 * WT) * T);
     const lenZ = Math.round((maxZ - minZ) * T);
-    const win = (centre: number, from: number, bottom: number, width = 18, height = 16) => {
+    const win = (centre: number, from: number, bottom: number, width = 18, height = 18) => {
       const c = Math.round((centre - from) * T);
       return { from: c - width / 2, to: c + width / 2, bottom: Math.round(bottom * T), top: Math.round(bottom * T) + height };
     };
     const xFrom = minX - WT;
     this.addWall(
-      wall(lenX, h, [win(-2, xFrom, 1.3), win(2.4, xFrom, 1.8, 18, 12), win(-2, xFrom, 3.9), win(2, xFrom, 3.9)]),
+      wall(
+        lenX,
+        h,
+        [win(-2.4, xFrom, 1.3), win(3.2, xFrom, 1.9, 18, 12), win(-2.4, xFrom, 4.3), win(2.4, xFrom, 4.3), win(0, xFrom, 6.9, 22, 20)],
+        Math.round(INTERIOR.gableHeight * T),
+      ),
       0,
       minZ - WT / 2,
       0,
@@ -102,8 +113,8 @@ export class Interior {
     this.addWall(
       wall(lenX, h, [
         { ...win(door.x0 / 2 + door.x1 / 2, xFrom, floorY[0], Math.round((door.x1 - door.x0) * T), Math.round(door.height * T)), door: true },
-        win(1.2, xFrom, 1.3),
-        win(-3, xFrom, 1.3, 12),
+        win(1.8, xFrom, 1.3),
+        win(-3.6, xFrom, 1.3, 14),
       ]),
       0,
       maxZ + WT / 2,
@@ -114,44 +125,53 @@ export class Interior {
     // Side walls run along z; rotate a wall built along x by a quarter turn.
     const zFrom = minZ;
     // The loft window sits higher here, above the low bookshelf.
-    this.addWall(wall(lenZ, h, [win(2.0, zFrom, 1.3), win(-1.5, zFrom, 4.4, 18, 14)]), minX - WT / 2, 0, Math.PI / 2, -1, 0);
-    this.addWall(wall(lenZ, h, [win(-1.6, zFrom, 1.3), win(-1.5, zFrom, 3.9)]), maxX + WT / 2, 0, -Math.PI / 2, 1, 0);
+    this.addWall(wall(lenZ, h, [win(3.0, zFrom, 1.3), win(-2.6, zFrom, 4.7, 18, 14)]), minX - WT / 2, 0, Math.PI / 2, -1, 0);
+    this.addWall(wall(lenZ, h, [win(-2.2, zFrom, 1.3), win(-2.0, zFrom, 4.3), win(1.6, zFrom, 1.3, 14)]), maxX + WT / 2, 0, -Math.PI / 2, 1, 0);
 
-    // Living room.
+    // Living room: sofa against the back wall, a stone fireplace on the left wall, a reading corner.
     const g = floorY[0];
-    this.add(rug(48, 32, 0x7c3a28, 0x4d7a76), -2, g, -0.4);
-    this.add(sofa(), -2, g, minZ + 15 / 32);
-    this.add(coffeeTable(), -2, g, -0.67);
-    this.add(woodStove(), minX + 12 / 32, g, 0.6);
-    this.add(stovePipe(Math.round((wallHeight - 1.2) * T)), minX + 6 / 32 + 2 / 16, g + 14 / 16, 0.6);
-    this.add(armchair(), -0.4, g, 1.42, -Math.PI / 2);
-    this.add(bookshelf(), 0.05, g, minZ + 7 / 32);
-    this.add(floorLamp(), -3.6, g, -1.6);
-    this.lamp(-3.6, g + 1.6, -1.6, 0xffb060, 0.6, 5);
-    this.lamp(minX + 0.9, g + 0.5, 0.6, 0xff8a3a, 1.2, 4); // the stove's glow
+    this.add(rug(60, 40, C_RUG.main, C_RUG.border), -2.4, g, -1.2);
+    this.add(sofa(), -2.5, g, minZ + 15 / 32);
+    this.add(coffeeTable(), -2.5, g, -1.47);
+    this.add(fireplace(Math.round(wallHeight * T)), minX + 8 / 16, g, 0.7);
+    this.add(armchair(), -0.55, g, 1.35, -Math.PI / 2);
+    this.add(bookshelf(), -0.35, g, minZ + 7 / 32);
+    this.add(sideTable(), -4.5, g, 3.15);
+    this.add(floorLamp(), -0.6, g, -2.4);
+    this.lamp(-0.6, g + 1.6, -2.4, 0xffb060, 0.6, 5);
+    this.lamp(-4.5, g + 0.9, 3.15, 0xffb060, 0.3, 2);
+    this.lamp(minX + 1.2, g + 0.6, 0.7, 0xff8a3a, 1.4, 5); // the fire's glow
 
     // Kitchen.
-    const cw = Math.round((3.95 - 0.9) * T);
-    this.add(counter(cw), 0.9 + cw / T / 2, g, minZ + 10 / 32);
-    this.add(wallShelf(36), 2.0, g + 2.05, minZ + 5 / 32);
-    this.add(table(), 1.6, g, 0.6);
-    this.add(chair(), 1.6, g, -0.2);
-    this.add(chair(), 1.6, g, 1.4, Math.PI);
-    this.lamp(2.0, g + 2.3, -0.8, 0xffc47a, 0.5, 4);
+    const cw = Math.round((4.95 - 1.45) * T);
+    this.add(counter(cw), 1.45 + cw / T / 2, g, minZ + 10 / 32);
+    this.add(wallShelf(48), 3.2, g + 2.05, minZ + 5 / 32);
+    this.add(table(), 2.3, g, 0.85);
+    this.add(chair(), 2.3, g, 0.05);
+    this.add(chair(), 2.3, g, 1.65, Math.PI);
+    this.lamp(2.8, g + 2.4, -1.4, 0xffc47a, 0.5, 4);
 
     // Bedroom loft.
     const l = floorY[1];
     const nsZ = minZ + 10 / 32;
-    this.add(rug(32, 20, 0x405d86, 0xd2c4a0), 0.9, l, -1.5);
-    this.add(bed(), -1.7, l, minZ + 34 / 32);
-    this.add(nightstand(), -0.2, l, nsZ);
-    this.add(tableLamp(), -0.2, l + 10 / 16, nsZ); // centred on the bedside table
-    this.add(wardrobe(), 2.0, l, minZ + 9 / 32);
-    this.lamp(-0.2, l + 1.0, nsZ + 0.3, 0xffb060, 0.4, 4);
+    this.add(rug(40, 24, 0x405d86, 0xd2c4a0), 0.9, l, -2.2);
+    this.add(bed(), -2.2, l, minZ + 34 / 32);
+    // A bedside table with a lamp on each side of the bed.
+    for (const nx of [-3.65, -0.7]) {
+      this.add(nightstand(), nx, l, nsZ);
+      this.add(tableLamp(), nx, l + 10 / 16, nsZ);
+      this.lamp(nx, l + 1.0, nsZ + 0.3, 0xffb060, 0.3, 3);
+    }
+    // A sideboard under the back window (it holds a plant spot); the tall wardrobe stands in the
+    // corner, clear of the windows.
+    this.add(sideboard(24), 2.4, l, minZ + 9 / 32);
+    this.add(wardrobe(), maxX - 13 / 16, l, minZ + 9 / 32);
+    this.add(armchair(), 0.75, l, -1.15, Math.PI);
+    this.lamp(0.2, l + 2.2, -2.0, 0xffc47a, 0.3, 3);
     // Low bookshelf along the left wall, across the bed from the bedside table, with a record player on top.
     const shelfX = minX + 7 / 32;
-    this.add(lowBookshelf(32), shelfX, l, -1.95, Math.PI / 2);
-    this.add(recordPlayer(), shelfX, l + 18 / 16, -1.95, Math.PI / 2);
+    this.add(lowBookshelf(32), shelfX, l, -2.95, Math.PI / 2);
+    this.add(recordPlayer(), shelfX, l + 18 / 16, -2.95, Math.PI / 2);
 
     // Plant spots: a saucer while empty, the plant once placed.
     DECOR_SLOTS.forEach((slot, i) => {
@@ -173,7 +193,7 @@ export class Interior {
     this.navs = [0, 1].map(
       (f) =>
         new NavGrid({
-          size: 10,
+          size: 12,
           heightAt: () => floorY[f],
           walkable: (x, z) => interiorWalkable(f as Floor, x, z),
         }),
@@ -230,7 +250,11 @@ export class Interior {
       const sp = decor[i];
       mesh.visible = !!sp;
       this.slotSaucers.get(i)!.visible = !sp;
-      if (sp) mesh.geometry = this.geo(`plant:${sp}`, () => pottedPlant(sp, 3));
+      // Plants on counters and shelves sit in plain pots; floor spots can have a stand.
+      const slot = DECOR_SLOTS[i]?.interior;
+      const onFurniture = !!slot && slot.y > floorY[slot.floor] + 0.01;
+      const style = potStyleFor(i, onFurniture);
+      if (sp) mesh.geometry = this.geo(`plant:${sp}:${style}`, () => pottedPlant(sp, 3, style));
     }
   }
 

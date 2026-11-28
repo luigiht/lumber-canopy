@@ -53,6 +53,8 @@ export const PALETTE = {
   flowerWhite: 0xdcdacd,
   flowerYellow: 0xbfae5c,
   flowerLilac: 0x9e92b0,
+  flowerRed: 0xc2553f,
+  flowerPink: 0xd98aa0,
 
   // Roof
   slate: 0x3c3e47,
@@ -60,6 +62,9 @@ export const PALETTE = {
   slateLight: 0x50535d,
   soot: 0x1d1a1a,
   string: 0xe0743a,
+  brass: 0xd9b35a,
+  mat: 0x7d4a33,
+  matDark: 0x5e3524,
 
   // Road
   asphalt: 0x56575a,
@@ -72,6 +77,14 @@ export const PALETTE = {
   terracottaLight: 0xc47a52,
   potSoil: 0x3d2a1a,
   variegated: 0xd9d48a,
+  ceramic: 0xe2d8c3,
+  ceramicDark: 0xc4b89d,
+  ceramicLight: 0xf0e8d6,
+  charcoal: 0x4b4c52,
+  charcoalDark: 0x37383d,
+  charcoalLight: 0x5e6067,
+  leafDeep: 0x2b4523,
+  leafBright: 0x86a347,
 
   // Light
   amber: 0xffb347,

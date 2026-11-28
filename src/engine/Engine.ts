@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BRIDGE } from '@/voxel/models/ground';
 import { IsoCamera } from './IsoCamera';
 import { DayNight } from './DayNight';
 import { Terrain } from '@/world/terrain';
@@ -16,7 +17,7 @@ import { OutlinePass } from './OutlinePass';
 import { createGradePass } from './GradePass';
 import { toonMaterial } from './toon';
 import { DebugConsole } from './DebugConsole';
-import { NavGrid, type Deck } from '@/world/nav';
+import { BODY, NavGrid, type Deck } from '@/world/nav';
 import { Character, TargetMarker, type WorkMode } from '@/world/character';
 import { Cabin } from '@/world/cabin';
 import { Stations } from '@/world/stations';
@@ -162,10 +163,20 @@ export class Engine {
     const decks: Deck[] = this.props.instances
       .filter((p) => p.model === 'bridge')
       .map((b) => {
-        const quarter = b.rot % 2 !== 0;
-        const hx = (quarter ? 20 : 50) / 32;
-        const hz = (quarter ? 50 : 20) / 32;
-        return { minX: b.x - hx, maxX: b.x + hx, minZ: b.z - hz, maxZ: b.z + hz, y: b.y + 3 / 16 };
+        // Bridges run along x (rot 0); the deck is narrower than the abutments.
+        const hx = BRIDGE.length / 32;
+        const hz = BRIDGE.deckWidth / 32;
+        return {
+          minX: b.x - hx,
+          maxX: b.x + hx,
+          minZ: b.z - hz,
+          maxZ: b.z + hz,
+          y: b.y + BRIDGE.deckTop / 16,
+          arch: BRIDGE.arch / 16,
+          // Keep a body's width inside the railings; block the railings, pillars and the bank beside them.
+          lane: hz - BODY - 0.05,
+          fence: BRIDGE.width / 32 + BODY,
+        };
       });
     for (const [key, mesh] of this.props.meshes) if (key.startsWith('bridge')) this.pickables.push(mesh);
     this.nav = NavGrid.forWorld(this.terrain, this.props.instances, decks);
@@ -680,10 +691,11 @@ export class Engine {
     this.outside.visible = false;
     this.interior.group.visible = true;
     this.dayNight.indoor = true;
-    // The cabin is small: concentrate the shadow map on it for crisp, blocky shadows.
-    this.dayNight.setShadowExtent(7);
+    // Concentrate the shadow map on the cabin for crisp, blocky shadows.
+    this.dayNight.setShadowExtent(9);
     this.otter.park(CABIN_DOOR_SPOT);
-    this.iso.setZoom(1.9);
+    // The room is roomy: pull back far enough to take it all in.
+    this.iso.setZoom(1.5);
     this.setFloor(0, INTERIOR_SPOTS.door);
     this.character.face(INTERIOR_SPOTS.door.x, 0);
   }

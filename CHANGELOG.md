@@ -14,6 +14,24 @@ All notable changes to Lumber & Canopy are recorded here. The format follows [Ke
 
 - The welcome-back summary shows each tool's level as a small label next to its name.
 - The potting table no longer lists the plants on display ("In and around your cabin"); the Plants panel (P) still does.
+- **Cabin exterior** redesigned after the cozy forest cabin sheets:
+  - a straight, even slate roof with fine shingles, bargeboards, fascia and rafter tails;
+  - a raised stone-block foundation;
+  - board-and-batten walls with honey A-frame timbering and bigger windows;
+  - a stone chimney with a firebox base;
+  - a porch on stone piers, with balustered railings and four steps;
+  - flower boxes, a bench, crate and barrel, a doormat, a lamp post, ivy and shrubs;
+  - a woodpile of round, staggered logs with bark rims, pale cut ends and uneven lengths, under a slate lean-to, with a chopping stump and axe beside it.
+- **Cabin interior** is roomier (10 × 8 tiles, up from 8 × 6) and restyled:
+  - log walls framed in honey timber, with a vaulted gable on the back wall;
+  - a stone fireplace in place of the wood stove;
+  - a green sofa and armchairs, and a green-and-gold rug;
+  - a balustered loft railing and a reading chair in the loft;
+  - a bedside table and lamp on each side of the bed, the wardrobe moved into the corner clear of the windows, and a sideboard under the back loft window holding the corner plant spot.
+- **Footbridge** rebuilt in more detail: stone abutments set into both banks, a gently arched plank deck (with gaps, knots and nails) on two stringers, two braced trestle bents standing in the river, railings with posts, a handrail and a mid rail, mossy stone pillars at each end and a lantern on the cabin side. The dirt paths now run right over the bank onto the bridge at both ends, and the player follows the deck's arch.
+- **Bridge collision:** the player and the otter stay on a lane between the railings and can only step onto the bridge from the paths at its ends, not through the railings, the pillars or from the bank beside it.
+- **Player character** redesigned as gender-neutral: no beard, chin-length hair under the beanie with a side-swept fringe, rounder eyes and a small smile.
+- **Houseplants** have more detail, and displayed plants come in a mix of pots: terracotta, cream, charcoal, woven basket, and a stand on floor spots.
 
 ## [0.1.0] - 2026-11-27
 

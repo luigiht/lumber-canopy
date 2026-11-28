@@ -121,7 +121,7 @@ export class Cabin {
     this.group.add(this.plot);
 
     this.porchLight = new THREE.PointLight(0xffa64d, 0, 7, 1.5);
-    this.porchLight.position.set(parts.door.x * V, 1.3, parts.door.z * V + 0.3);
+    this.porchLight.position.set(parts.door.x * V, parts.door.y * V + 1.1, parts.door.z * V + 0.3);
     this.group.add(this.porchLight);
 
     this.smoke = new Smoke(new THREE.Vector3(parts.chimneyTop.x * V, parts.chimneyTop.y * V, parts.chimneyTop.z * V));

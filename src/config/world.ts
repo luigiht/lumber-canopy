@@ -141,14 +141,16 @@ export const WORLD = {
       // Road verge to the east end of the bridge.
       [
         [12.5, 0.05],
-        [11.4, -0.2],
-        [10.6, -0.3],
-        [9.7, -0.6],
+        [11.5, -0.2],
+        [10.8, -0.55],
+        // Straight onto the abutment, in line with the deck.
+        [9.95, -0.625],
       ],
       // West end of the bridge, curving up into the cabin clearing.
       [
-        [7.0, -0.6],
-        [5.8, -0.3],
+        [6.85, -0.625],
+        [6.0, -0.55],
+        [5.2, -0.25],
         [4.7, 0.15],
         [3.4, 0.4],
         [2.1, 0.75],
@@ -164,7 +166,8 @@ export const WORLD = {
   mist: { near: 18, far: 40, banks: 110, bankNear: 14.5, valleyBanks: 64 },
 
   placements: [
-    { model: 'bridge', x: 8.4, z: -0.6, rot: 0 },
+    // z on a nav-cell centre line, so the walkable lane between the railings is even.
+    { model: 'bridge', x: 8.4, z: -0.625, rot: 0 },
     { model: 'logPile', x: -3.6, z: 6.6, rot: 0 },
     { model: 'stump', x: -0.9, z: 4.6 },
     { model: 'stump', x: 4.0, z: -3.6 },

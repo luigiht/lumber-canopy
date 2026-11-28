@@ -10,6 +10,7 @@ import {
   fieldFence,
   groundPlant,
   pottedPlant,
+  potStyleFor,
   pottingTable,
   rockPile,
   rockPileEmpty,
@@ -18,11 +19,13 @@ import {
 } from '@/voxel/models/stations';
 import { ARRIVAL, DECOR_SLOTS, STATIONS, TABLE_SLOTS, type StationDef } from '@/config/stations';
 import { FIELD, FIELD_BEDS } from '@/config/field';
+import { CABIN_DECK_Y } from '@/voxel/models/cabin';
 import type { GrowthStage, SpeciesId } from '@/game/plants';
 import type { NavGrid } from './nav';
 
 const TABLE_TOP = 12 / 16;
-const PORCH_DECK = 6 / 16;
+/** Porch plants and the door marker stand on the porch deck. */
+const PORCH_DECK = CABIN_DECK_Y;
 
 /** How high above a station its world marker floats, in tiles. */
 const MARKER_LIFT: Partial<Record<StationDef['kind'], number>> = {
@@ -235,7 +238,8 @@ export class Stations {
       if (!m) return;
       const show = !!sp && !DECOR_SLOTS[i].interior && (!DECOR_SLOTS[i].porch || cabinDone);
       m.visible = show;
-      if (show) m.geometry = this.geo(`plant:${sp}:3`, () => pottedPlant(sp!, 3));
+      const style = potStyleFor(i);
+      if (show) m.geometry = this.geo(`plant:${sp}:3:${style}`, () => pottedPlant(sp!, 3, style));
     });
   }
 

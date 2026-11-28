@@ -1,6 +1,6 @@
 import { VoxelModel } from '../VoxelModel';
 
-/** Colours for the lumberjack, kept local so the character reads as one palette. */
+/** Colours for the player character, kept local so they read as one palette. */
 const C = {
   red: 0xc0392b,
   redDark: 0x7c1f19,
@@ -14,8 +14,9 @@ const C = {
   skin: 0xe8b48a,
   cheek: 0xe8907a,
   eye: 0x2a1a12,
-  beard: 0x7a4524,
-  beardDark: 0x5e331a,
+  hair: 0x7a4524,
+  hairDark: 0x5e331a,
+  mouth: 0xb8675a,
   beanie: 0xd9a03f,
   beanieDark: 0xb8832c,
   pompom: 0xf3ead2,
@@ -37,7 +38,8 @@ export interface LumberjackParts {
 }
 
 /**
- * A friendly chibi cabin-builder (tools are separate models, see stations.ts) built from separate voxel parts so limbs can swing. Faces +z.
+ * A friendly, gender-neutral chibi cabin-builder (tools are separate models, see stations.ts), built
+ * from separate voxel parts so limbs can swing. Faces +z.
  * Units are voxels (1/16 tile). Pivots sit on the joints: hips, shoulders and the neck.
  */
 export function lumberjack(): LumberjackParts {
@@ -53,21 +55,21 @@ export function lumberjack(): LumberjackParts {
         torso.grid.set(x, y, z, col);
       }
 
-  // Head: 6 wide, 6 tall face plus a 4-tall beanie; 7 deep so the nose and beard can poke out.
+  // Head: 6 wide, 6 tall face plus a 4-tall beanie; 7 deep so the nose can poke out. A soft,
+  // gender-neutral look: chin-length hair under the beanie, a side-swept fringe, no facial hair.
   const head = new VoxelModel(6, 10, 7, { x: 3, y: 0, z: 3 });
   head.box(0, 0, 0, 5, 5, 5, C.skin);
-  head.box(0, 2, 0, 5, 5, 0, C.beardDark); // hair at the back
-  head.box(0, 0, 3, 0, 2, 5, C.beard); // sideburns into the beard
-  head.box(5, 0, 3, 5, 2, 5, C.beard);
-  head.box(0, 0, 5, 5, 1, 5, C.beard); // beard
-  head.box(1, 0, 6, 4, 1, 6, C.beard); // beard pokes forward
-  head.box(1, 2, 5, 4, 2, 5, C.beardDark); // moustache
-  head.set(2, 3, 6, C.skin); // nose
-  head.set(3, 3, 6, C.skin);
-  head.set(1, 4, 5, C.eye);
-  head.set(4, 4, 5, C.eye);
-  head.set(0, 3, 5, C.cheek);
-  head.set(5, 3, 5, C.cheek);
+  head.box(0, 1, 0, 5, 5, 0, (_x, y) => (y === 1 ? C.hairDark : C.hair)); // back, down to the nape
+  for (const x of [0, 5]) head.box(x, 1, 1, x, 5, 4, (_x, y, z) => (z === 4 && y < 3 ? C.hairDark : C.hair)); // sides to the chin
+  head.box(0, 5, 5, 3, 5, 5, C.hair); // fringe swept to one side
+  head.set(0, 4, 5, C.hair);
+  head.set(4, 5, 5, C.hairDark);
+  head.box(1, 3, 5, 1, 4, 5, C.eye); // eyes, two voxels tall
+  head.box(4, 3, 5, 4, 4, 5, C.eye);
+  head.set(2, 2, 6, C.skin); // small nose
+  head.set(0, 2, 5, C.cheek);
+  head.set(5, 2, 5, C.cheek);
+  head.box(2, 1, 5, 3, 1, 5, C.mouth); // a small smile
   head.box(0, 6, 0, 5, 6, 5, C.beanieDark); // folded band
   head.box(0, 7, 0, 5, 7, 5, (x, _y, z) => ((x + z) % 2 ? C.beanie : C.beanieDark));
   head.box(1, 8, 1, 4, 8, 4, C.beanie);

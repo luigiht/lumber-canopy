@@ -9,7 +9,19 @@ export interface Deck {
   minZ: number;
   maxZ: number;
   y: number;
+  /** Rise of an arched deck at its middle along x (tiles); 0 when flat. */
+  arch?: number;
+  /**
+   * Railed decks: only a lane this far either side of the deck's centre line is walkable, and
+   * everything out to `fence` (the railings, pillars and the bank beside them) is blocked, so
+   * nobody walks through the railings or onto the bridge from the side.
+   */
+  lane?: number;
+  fence?: number;
 }
+
+/** Standing height on a deck, following its arch. */
+const deckHeight = (d: Deck, x: number) => d.y + (d.arch ?? 0) * Math.sin((Math.PI * (x - d.minX)) / (d.maxX - d.minX));
 
 /** What a nav grid is built over: its size and, per point, the standing height and whether it's open. */
 export interface NavSurface {
@@ -21,7 +33,8 @@ export interface NavSurface {
 
 const RES = 4; // cells per tile
 const MAX_STEP = 0.3; // tallest step the lumberjack can take, in tiles
-const BODY = 0.14; // character radius, in tiles
+/** Character (and otter) radius, in tiles. */
+export const BODY = 0.14;
 const EDGE = 1; // keep this far from the edge of the detailed terrain
 
 type Pt = [number, number];
@@ -92,9 +105,19 @@ export class NavGrid {
     return new NavGrid(
       {
         size: terrain.cfg.size,
-        heightAt: (x, z) => deckAt(x, z)?.y ?? terrain.heightAt(x, z),
-        walkable: (x, z) =>
-          Math.max(Math.abs(x), Math.abs(z)) <= half - EDGE && !(terrain.matAt(x, z) === Mat.Bed && !deckAt(x, z)),
+        heightAt: (x, z) => {
+          const d = deckAt(x, z);
+          return d ? deckHeight(d, x) : terrain.heightAt(x, z);
+        },
+        walkable: (x, z) => {
+          if (Math.max(Math.abs(x), Math.abs(z)) > half - EDGE) return false;
+          for (const d of decks) {
+            if (d.lane === undefined || x < d.minX - BODY / 2 || x > d.maxX + BODY / 2) continue;
+            const off = Math.abs(z - (d.minZ + d.maxZ) / 2);
+            if (off >= d.lane && off < (d.fence ?? d.lane)) return false;
+          }
+          return !(terrain.matAt(x, z) === Mat.Bed && !deckAt(x, z));
+        },
       },
       instances,
     );

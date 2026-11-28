@@ -91,8 +91,8 @@ Once built, the windows glow at night, the porch light comes on, the chimney smo
 
 A cutaway view (outdoors is hidden). Walls between the camera and the room hide as the view rotates.
 
-- **Ground floor:** living room (sofa, rug, wood stove, armchair, bookshelf, lamp) and kitchen (counter with sink and cooktop, wall shelf, table and chairs).
-- **Bedroom loft:** bed, bedside table and lamp, wardrobe, and a low bookshelf with a record player on top.
+- **Ground floor** (10 × 8 tiles, open plan): living room (sofa, rug, stone fireplace, armchair, bookshelf, side table, lamp) and kitchen (counter with sink and cooktop, wall shelf, table and chairs).
+- **Bedroom loft:** bed with a bedside table and lamp on each side, a wardrobe in the corner, a sideboard under the back window, a reading chair, and a low bookshelf with a record player on top.
 - **Getting around:** stair markers move between floors, and the front-door marker leads back out to the porch steps.
 - **Saves:** a game saved indoors resumes just outside the door.
 
@@ -146,7 +146,7 @@ The field marker reads "Seeds ready!" when a bed can be harvested.
 - **Inside:** 10 spots.
   - Living room: 3.
   - Kitchen: 3 (one on the counter and one on the table).
-  - Bedroom: 4 (two on top of the low bookshelf).
+  - Bedroom: 4 (two on top of the low bookshelf, one on the sideboard).
 
 Empty inside spots show a terracotta saucer.
 

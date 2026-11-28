@@ -148,93 +148,215 @@ export function taxi(): VoxelModel {
 
 const POT = 6;
 const PLANT_W = 18;
-const PLANT_H = 26;
+const PLANT_H = 32;
+/** How much a wooden plant stand lifts the pot, in voxels. */
+const STAND_H = 5;
 
-function pot(m: VoxelModel) {
+/** Pots and stands a displayed plant can sit in. Each spot keeps one style, so a room mixes them. */
+export type PotStyle = 'terracotta' | 'cream' | 'charcoal' | 'basket' | 'stand';
+export const POT_STYLES: PotStyle[] = ['cream', 'terracotta', 'basket', 'charcoal', 'stand'];
+
+/** The pot style for a display spot; spots on furniture skip the stand. */
+export function potStyleFor(slot: number, onFurniture = false): PotStyle {
+  const style = POT_STYLES[(slot * 3 + 1) % POT_STYLES.length];
+  return onFurniture && style === 'stand' ? 'cream' : style;
+}
+
+const POT_COLORS: Record<Exclude<PotStyle, 'stand'>, { body: number; dark: number; rim: number }> = {
+  terracotta: { body: P.terracotta, dark: P.terracottaDark, rim: P.terracottaLight },
+  cream: { body: P.ceramic, dark: P.ceramicDark, rim: P.ceramicLight },
+  charcoal: { body: P.charcoal, dark: P.charcoalDark, rim: P.charcoalLight },
+  basket: { body: P.honey, dark: P.walnut, rim: P.walnut },
+};
+
+/** Draws the pot (on a stand if asked) and returns the soil height, where foliage starts. */
+function pot(m: VoxelModel, style: PotStyle): number {
   const o = (PLANT_W - POT) / 2;
-  m.box(o + 1, 0, o + 1, o + POT - 2, 0, o + POT - 2, P.terracottaDark);
-  m.box(o, 1, o, o + POT - 1, 3, o + POT - 1, P.terracotta);
-  m.box(o - 1, 4, o - 1, o + POT, 4, o + POT, P.terracottaLight); // rim
-  m.box(o, 4, o, o + POT - 1, 4, o + POT - 1, P.potSoil);
-  for (let x = o; x < o + POT; x++) for (let z = o; z < o + POT; z++) if (x > o && x < o + POT - 1 && z > o && z < o + POT - 1) m.set(x, 4, z, P.potSoil);
+  let y0 = 0;
+  if (style === 'stand') {
+    // A little four-legged wooden stand with a slatted top.
+    for (const [x, z] of [[o - 1, o - 1], [o + POT, o - 1], [o - 1, o + POT], [o + POT, o + POT]]) m.box(x, 0, z, x, STAND_H - 1, z, P.walnutDark);
+    m.box(o - 1, STAND_H - 1, o - 1, o + POT, STAND_H - 1, o + POT, (x) => (x % 2 === 0 ? P.honey : P.honeyLight));
+    m.box(o - 1, 1, o - 1, o + POT, 1, o - 1, P.walnut);
+    m.box(o - 1, 1, o + POT, o + POT, 1, o + POT, P.walnut);
+    y0 = STAND_H;
+  }
+  const c = POT_COLORS[style === 'stand' ? 'cream' : style];
+  const basket = style === 'basket';
+  m.box(o + 1, y0, o + 1, o + POT - 2, y0, o + POT - 2, c.dark); // foot
+  m.box(o, y0 + 1, o, o + POT - 1, y0 + 3, o + POT - 1, (x, y, z) =>
+    basket ? ((x + y + z) % 2 === 0 ? P.honey : P.honeyLight) : y === y0 + 2 && style !== 'terracotta' ? c.dark : c.body,
+  );
+  m.box(o - 1, y0 + 4, o - 1, o + POT, y0 + 4, o + POT, c.rim); // rim
+  m.box(o, y0 + 4, o, o + POT - 1, y0 + 4, o + POT - 1, P.potSoil);
+  return y0 + 5;
 }
 
 const C = PLANT_W / 2 - 0.5;
-/** Foliage starts here: just above the pot's soil. */
+/** Soil line of a plain pot: foliage starts here (a stand lifts it by STAND_H). */
 const TOP = 5;
 /** Height of the soil surface inside a garden bed, in voxels. */
 const BED_SOIL = 3;
 
-/** A leaf blade that arches out from the centre along (dx,dz). */
-function arch(m: VoxelModel, dx: number, dz: number, len: number, lift: number, col: number, tip = col) {
+const set = (m: VoxelModel, x: number, y: number, z: number, col: number) => m.set(x, Math.max(0, y), z, col);
+
+/** A blade that arches out from the centre along (dx,dz): `col` along the edge, `mid` down the middle. */
+function blade(m: VoxelModel, top: number, dx: number, dz: number, len: number, lift: number, col: number, mid = col, tip = col) {
   for (let i = 0; i <= len; i++) {
     const t = i / len;
-    const y = TOP + Math.round(lift * Math.sin(t * Math.PI * 0.85));
-    m.set(C + dx * i, y, C + dz * i, i >= len - 1 ? tip : col);
+    const y = top + Math.round(lift * Math.sin(t * Math.PI * 0.9));
+    const x = C + dx * i;
+    const z = C + dz * i;
+    set(m, x, y, z, i >= len - 1 ? tip : mid);
+    // A second, offset row makes the blade two voxels wide until the tip.
+    if (i < len - 1) set(m, x - dz, y, z + dx, col);
   }
 }
 
+/** A small leaf: a 2×2 patch with a light edge, the way the reference draws foliage clusters. */
+function leaf(m: VoxelModel, x: number, y: number, z: number, col: number, light: number) {
+  set(m, x, y, z, col);
+  set(m, x + 1, y, z, light);
+  set(m, x, y, z + 1, col);
+  set(m, x + 1, y, z + 1, col);
+}
+
 /**
- * A houseplant at a growth stage. Potted, it sits in a terracotta pot; otherwise it grows straight
- * from the soil, with the soil line at y = TOP (see GROUND_PLANT_SINK).
+ * A houseplant at a growth stage, drawn after the pixel-art houseplant collection: layered leaves in
+ * two or three greens with light edges, variegation, trailing vines and runners. Potted, it sits in
+ * a pot of the given style; otherwise it grows straight from the soil, with the soil line at y = TOP
+ * (see GROUND_PLANT_SINK).
  */
-function plantModel(species: SpeciesId, stage: 1 | 2 | 3, potted = true): VoxelModel {
+function plantModel(species: SpeciesId, stage: 1 | 2 | 3, style: PotStyle | null = 'terracotta'): VoxelModel {
   const m = new VoxelModel(PLANT_W, PLANT_H, PLANT_W, { x: PLANT_W / 2, y: 0, z: PLANT_W / 2 });
-  if (potted) pot(m);
+  const top = style ? pot(m, style) : TOP;
   const rng = makeRng(species.length * 97 + stage);
   const s = [0.45, 0.72, 1][stage - 1];
   const dirs = (n: number, off = 0) =>
     Array.from({ length: n }, (_, i) => {
-      const a = ((i + off) / n) * Math.PI * 2 + rng() * 0.3;
+      const a = ((i + off) / n) * Math.PI * 2 + rng() * 0.35;
       return [Math.cos(a), Math.sin(a)] as const;
     });
 
   switch (species) {
     case 'pothos': {
-      const leaf = shades([P.leaf, P.leafLight, P.variegated]);
-      m.ellipsoid(C, TOP + 2 * s, C, 2 + 2.2 * s, 1 + 2 * s, 2 + 2.2 * s, leaf);
+      // A mound of small heart leaves, some splashed with cream, with vines spilling over the rim.
+      const r = 2 + 2.4 * s;
+      const n = Math.round(10 + 22 * s);
+      for (let i = 0; i < n; i++) {
+        const a = rng() * Math.PI * 2;
+        const d = Math.sqrt(rng()) * r;
+        const x = Math.round(C + Math.cos(a) * d - 0.5);
+        const z = Math.round(C + Math.sin(a) * d - 0.5);
+        const y = top + Math.round((1 - d / r) * (1 + 2.5 * s) + rng());
+        const t = rng();
+        leaf(m, x, y, z, t < 0.12 ? P.variegated : t < 0.55 ? P.leaf : P.leafBright, P.leafLight);
+      }
       if (stage >= 2)
-        for (const [dx, dz] of dirs(stage === 3 ? 5 : 3)) {
+        for (const [dx, dz] of dirs(stage === 3 ? 6 : 3)) {
           const ex = Math.round(C + dx * 4);
           const ez = Math.round(C + dz * 4);
-          for (let y = TOP; y >= TOP - 2 - stage * 2; y--) m.set(ex, Math.max(0, y), ez, (y & 1) === 0 ? P.leaf : P.leafLight);
+          const len = 3 + stage * 3;
+          for (let k = 0; k < len; k++) {
+            const y = top - k;
+            const sway = k % 4 < 2 ? 0 : 1;
+            const vx = ex + (dx > 0 ? sway : -sway);
+            set(m, vx, y, ez, P.leafDark);
+            // Leaves sit right beside the vine, alternating sides, so none float loose.
+            if (k % 2 === 0) set(m, vx, y, ez + (k % 4 === 0 ? 1 : -1), k % 6 === 0 ? P.leafBright : P.leaf);
+          }
         }
       break;
     }
     case 'spider': {
-      for (const [dx, dz] of dirs(stage + 5)) arch(m, dx, dz, Math.round(2 + 5 * s), 2 + 3 * s, P.leafLight, P.variegated);
+      // Arching striped blades with a cream centre; mature plants send out runners with babies.
+      for (const [dx, dz] of dirs(stage * 2 + 6)) blade(m, top, dx, dz, Math.round(2 + 5.5 * s), 2 + 3 * s, P.leaf, P.variegated, P.leafLight);
+      for (const [dx, dz] of dirs(4, 0.5)) blade(m, top, dx * 0.6, dz * 0.6, Math.round(2 + 3 * s), 3 + 4 * s, P.leafBright, P.leafLight);
       if (stage === 3)
-        for (const [dx, dz] of dirs(3, 0.5)) m.box(Math.round(C + dx * 7), TOP - 1, Math.round(C + dz * 7), Math.round(C + dx * 7), TOP, Math.round(C + dz * 7), P.leafLight);
+        for (const [dx, dz] of dirs(3, 0.25)) {
+          const ex = Math.round(C + dx * 7);
+          const ez = Math.round(C + dz * 7);
+          for (let y = top; y >= top - 4; y--) set(m, Math.round(C + dx * 6), y, Math.round(C + dz * 6), P.leafDark);
+          set(m, ex, top - 5, ez, P.leafLight);
+          set(m, ex + 1, top - 4, ez, P.variegated);
+          set(m, ex - 1, top - 4, ez, P.leafLight);
+          set(m, ex, top - 4, ez + 1, P.leafLight);
+        }
       break;
     }
     case 'fern': {
-      for (const [dx, dz] of dirs(stage * 3 + 4)) arch(m, dx, dz, Math.round(2 + 5 * s), 3 + 4 * s, P.pineTip, P.leafLight);
-      m.ellipsoid(C, TOP + 1, C, 1.5 + s, 1.5 * s + 0.5, 1.5 + s, P.pineLight);
+      // Feathery fronds: a midrib with leaflets either side, light at the tips, drooping at the end.
+      const fronds = stage * 3 + 5;
+      for (const [dx, dz] of dirs(fronds)) {
+        const len = Math.round(3 + 5 * s);
+        const lift = 3 + 4 * s;
+        for (let i = 0; i <= len; i++) {
+          const t = i / len;
+          const y = top + Math.round(lift * Math.sin(t * Math.PI * 0.95));
+          const x = C + dx * i;
+          const z = C + dz * i;
+          set(m, x, y, z, P.pineMid);
+          if (i > 0 && i < len) {
+            const col = t > 0.6 ? P.pineTip : i % 2 ? P.leafLight : P.pineLight;
+            set(m, x - dz, y, z + dx, col);
+            set(m, x + dz, y, z - dx, col);
+          }
+        }
+      }
+      m.ellipsoid(C, top + 1, C, 1.5 + s, 1.2 * s + 0.6, 1.5 + s, shades([P.pineLight, P.pineMid, P.pineTip]));
       break;
     }
     case 'snake': {
-      const blades = [[0, 0], [-2, 1], [2, -1], [1, 2], [-1, -2]].slice(0, stage + 2);
+      // Upright sword leaves, banded in dark green, with yellow margins and pointed tips.
+      const blades = [[0, 0], [-2, 1], [2, -1], [1, 2], [-1, -2], [2, 2], [-2, -1]].slice(0, stage + 3);
       for (const [bx, bz] of blades) {
-        const h = Math.round(4 + 9 * s * (0.8 + rng() * 0.3));
-        for (let y = TOP; y < TOP + h; y++) {
-          const edge = y === TOP + h - 1 || (y + bx) % 4 === 0;
-          m.set(C + bx, y, C + bz, edge ? P.variegated : P.pineMid);
-          if (y < TOP + h - 2) m.set(C + bx + 1, y, C + bz, P.pineDark);
+        const h = Math.round(4 + 10 * s * (0.75 + rng() * 0.35));
+        const lean = bx === 0 && bz === 0 ? 0 : 0.12;
+        for (let y = top; y < top + h; y++) {
+          const k = y - top;
+          const x = Math.round(C + bx + bx * lean * k);
+          const z = Math.round(C + bz + bz * lean * k);
+          const band = (y + bx * 2 + bz) % 3 === 0 ? P.pineDark : P.pineMid;
+          const tip = k >= h - 1;
+          set(m, x, y, z, tip ? P.variegated : band);
+          if (k < h - 2) {
+            set(m, x + 1, y, z, k % 3 === 1 ? P.leafLight : band);
+            set(m, x + 2, y, z, P.variegated); // yellow margin on the outer edge
+          }
         }
       }
       break;
     }
     case 'monstera': {
-      const leaves = stage + 1;
+      // Stems rising out of the pot to big split leaves: deep green, a lighter rim and midrib,
+      // and holes in the mature leaves.
+      const leaves = stage + 2;
+      const around = dirs(leaves);
       for (let i = 0; i < leaves; i++) {
-        const [dx, dz] = dirs(leaves)[i];
-        const h = Math.round(3 + 7 * s + i);
-        const lx = C + dx * (2 + 3 * s);
-        const lz = C + dz * (2 + 3 * s);
-        for (let y = TOP; y < TOP + h; y++) m.set(C + dx * (y - TOP) * 0.3, y, C + dz * (y - TOP) * 0.3, P.leafDark);
-        const r = 1.5 + 2 * s;
-        m.ellipsoid(lx, TOP + h, lz, r, 0.6, r, (x, _y, z) => ((x + z) % 3 === 0 && stage === 3 ? P.leaf : P.pineMid));
-        if (stage === 3) m.grid.clear(Math.round(lx + 1), TOP + h, Math.round(lz));
+        const [dx, dz] = around[i];
+        const h = Math.round(3 + 7 * s + (i % 3));
+        const reach = 2 + 3.5 * s;
+        for (let k = 0; k <= h; k++) set(m, C + dx * k * (reach / h), top + k, C + dz * k * (reach / h), P.leafDark);
+        const lx = C + dx * (reach + 1);
+        const lz = C + dz * (reach + 1);
+        const ly = top + h;
+        const r = 1.8 + 2.4 * s;
+        for (let ox = -Math.ceil(r); ox <= Math.ceil(r); ox++)
+          for (let oz = -Math.ceil(r); oz <= Math.ceil(r); oz++) {
+            const d = Math.hypot(ox, oz) / r;
+            if (d > 1) continue;
+            const along = (ox * dx + oz * dz) / r; // towards the leaf tip
+            const across = ox * -dz + oz * dx; // signed distance from the midrib
+            // A flat leaf, its outer half dipping one voxel, so it stays one solid sheet.
+            const y = along > 0.35 ? ly - 1 : ly;
+            // Mature leaves are split: a few slits run in from the edge, between the veins.
+            if (stage === 3 && d > 0.55 && d < 0.9 && Math.abs(across) > 1 && Math.round(Math.abs(across) + along * 2) % 3 === 0) continue;
+            // Skip lone rim voxels that would stick out on their own.
+            const onRim = (v: number) => Math.abs(v) === Math.ceil(r);
+            if (d > 0.92 && onRim(ox) !== onRim(oz)) continue;
+            const col = Math.abs(across) < 0.6 ? P.leafLight : d > 0.8 ? P.leafDark : (ox * 3 + oz) % 4 === 0 ? P.leafDeep : P.leaf;
+            set(m, Math.round(lx + ox), y, Math.round(lz + oz), col);
+          }
       }
       break;
     }
@@ -244,12 +366,12 @@ function plantModel(species: SpeciesId, stage: 1 | 2 | 3, potted = true): VoxelM
 
 const plantCache = new Map<string, VoxelModel>();
 
-/** A potted plant at a growth stage (cached; models are shared by key). */
-export function pottedPlant(species: SpeciesId, stage: 1 | 2 | 3): VoxelModel {
-  const key = `${species}:${stage}`;
+/** A potted plant at a growth stage, in a pot of the given style (cached; models are shared by key). */
+export function pottedPlant(species: SpeciesId, stage: 1 | 2 | 3, style: PotStyle = 'terracotta'): VoxelModel {
+  const key = `${species}:${stage}:${style}`;
   let m = plantCache.get(key);
   if (!m) {
-    m = plantModel(species, stage);
+    m = plantModel(species, stage, style);
     plantCache.set(key, m);
   }
   return m;
@@ -260,7 +382,7 @@ export function groundPlant(species: SpeciesId, stage: 1 | 2 | 3): VoxelModel {
   const key = `ground:${species}:${stage}`;
   let m = plantCache.get(key);
   if (!m) {
-    m = plantModel(species, stage, false);
+    m = plantModel(species, stage, null);
     plantCache.set(key, m);
   }
   return m;

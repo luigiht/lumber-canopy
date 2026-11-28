@@ -245,9 +245,11 @@ export class Terrain {
           const onRoad = roadOffset(x, z, cfg.road) < cfg.road.halfWidth;
           // Footpaths are the same brown dirt as the cabin clearing, with a slightly ragged edge.
           const pd = pathDist(x, z, cfg.road) - cfg.road.pathHalfWidth;
-          if (sd < stream.halfWidth + bankW) this.mat[c] = Mat.Bank;
+          const onPath = pd + (valueNoise2(x * 2.1, z * 2.1, seed + 9) - 0.5) * 0.3 < 0;
+          // Paths run right over the bank to the bridge abutments, so they meet the bridge.
+          if (sd < stream.halfWidth + bankW && !(onPath && sd > stream.halfWidth + 0.06)) this.mat[c] = Mat.Bank;
           else if (onRoad) this.mat[c] = Mat.Road;
-          else if (pd + (valueNoise2(x * 2.1, z * 2.1, seed + 9) - 0.5) * 0.3 < 0) this.mat[c] = Mat.Dirt;
+          else if (onPath) this.mat[c] = Mat.Dirt;
           // The garden field's patch is bare ground, like around the cabin.
           else if (this.isFieldDirt(i, k)) this.mat[c] = Mat.Dirt;
           else if (this.isDirt(i, k, e)) this.mat[c] = Mat.Dirt;

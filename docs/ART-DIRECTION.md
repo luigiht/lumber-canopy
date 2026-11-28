@@ -36,7 +36,7 @@ Cosy but moody: a misty, overcast forest valley in chunky voxels with ink outlin
 
 ### Characters
 
-- **The player:** chibi, with a buffalo-check shirt, jeans, beard and yellow beanie, holding the selected tool.
+- **The player:** a gender-neutral chibi with chin-length hair, a buffalo-check shirt, jeans and a yellow beanie, holding the selected tool. No facial hair.
 - **The otter:** long and low (about three times longer than wide), brown with a cream muzzle and belly, dark ears and nose. It stands on all four paws with its tail visible.
 
 ### Interior
